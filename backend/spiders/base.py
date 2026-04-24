@@ -45,7 +45,7 @@ class BaseSpider:
         self.parser_registry = {
             "火影忍者": self.parse_huoying,
             "DNF":      self.parse_dnf,
-            "无畏契约":  self.parse_thefinals,
+            "无畏契约":  self.parse_valo,
         }
 
     # ---------------- 浏览器周期 ----------------
@@ -187,7 +187,7 @@ class BaseSpider:
 
         return items
 
-    def parse_thefinals(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+    def parse_valo(self, html: str, target_url: str) -> List[Dict[str, Any]]:
         """无畏契约解析逻辑"""
         soup = BeautifulSoup(html, "html.parser")
         div = soup.select_one("div.news-list")
