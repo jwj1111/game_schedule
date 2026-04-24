@@ -304,7 +304,7 @@ class BaseSpider:
 
             item = self._empty_item(source="QQ炫舞")
             item["info"] = title
-            item["href"] = urljoin(target_url, href)
+            item["link"] = urljoin(target_url, href)
             items.append(item)
 
         return items
