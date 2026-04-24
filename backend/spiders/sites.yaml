@@ -6,7 +6,9 @@
 
 # ---------- 调度配置（本轮仅记录，下一轮接入 APScheduler） ----------
 schedule:
-  interval_hours: 2          # 每 N 小时爬一次
+  # 爬取间隔，单字段 + 单位；最小单位：分钟
+  # 支持：m(分钟) / h(小时) / d(天)，例：30m / 2h / 1d
+  interval: 1m
 
 # ---------- 爬虫运行参数（对应 BaseSpider 的构造参数） ----------
 runtime:

@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from backend.spiders.base import BaseSpider
-from backend.spiders.config import SpiderConfig, load_sites_config
+from backend.spiders.config import SpiderConfig, format_duration, load_sites_config
 
 # 调试产物目录（.gitignore 中 data/* 已忽略）
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -40,7 +40,7 @@ def crawl_all(cfg: SpiderConfig | None = None) -> List[Dict[str, Any]]:
 
     print("=" * 60)
     print(f"爬虫启动：共 {len(cfg.sites)} 个站点，启用 {len(enabled)} 个")
-    print(f"调度间隔（本轮未启用）：每 {cfg.schedule.interval_hours} 小时一次")
+    print(f"调度间隔（本轮未启用）：每 {format_duration(cfg.schedule.interval_seconds)} 一次")
     print(f"运行参数：headless={cfg.runtime.headless}, "
           f"timeout={cfg.runtime.timeout_seconds}s, retry={cfg.runtime.retry_times}")
     print("=" * 60)
