@@ -26,14 +26,39 @@ sites:
   - game: 火影忍者
     parser: 火影忍者
     url: https://hyrz.qq.com/web202003/newsList.html
-    enabled: true
+    enabled: false
 
   - game: DNF
     parser: DNF
     url: https://dnf.qq.com/webplat/info/news_version3/119/495/m22990/list_1.shtml
-    enabled: true
+    enabled: false
 
   - game: 无畏契约
     parser: 无畏契约
     url: https://val.qq.com/news.html?page=1&keyword=
+    enabled: false
+
+  - game: 王者荣耀世界
+    parser: 王者荣耀世界
+    url: https://world.qq.com/web202603/news-list.html?st=0
+    enabled: false
+
+  - game: nba2kol2
+    parser: nba2kol2
+    url: https://nba2k2.qq.com/webplat/info/news_version3/30714/33557/m19596/list_1.shtml
+    enabled: false
+  
+  - game: 逆战
+    parser: 逆战
+    url: https://nz.qq.com/webplat/info/news_version3/1421/2253/2254/2255/m22569/list_1.shtml
+    enabled: false
+  
+  - game: QQ炫舞
+    parser: QQ炫舞
+    url: https://x5.qq.com/webplat/info/news_version3/146/35241/35242/35256/m20406/list_1.shtml
+    enabled: false
+
+  - game: 三角洲行动
+    parser: 三角洲行动
+    url: https://df.qq.com/cp/a20240906main/newslist.html
     enabled: true

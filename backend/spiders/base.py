@@ -44,8 +44,13 @@ class BaseSpider:
         # 网站名 -> 解析函数
         self.parser_registry = {
             "火影忍者": self.parse_huoying,
-            "DNF":      self.parse_dnf,
-            "无畏契约":  self.parse_valo,
+            "DNF": self.parse_dnf,
+            "无畏契约": self.parse_valo,
+            "王者荣耀世界": self.parse_wzrysj,
+            "nba2kol2": self.parse_nba2kol2,
+            "逆战": self.parse_nizhan,
+            "QQ炫舞": self.parse_qqxuanwu,
+            "三角洲行动": self.parse_sjzxd
         }
 
     # ---------------- 浏览器周期 ----------------
@@ -210,6 +215,118 @@ class BaseSpider:
             items.append(item)
 
         return items
+    
+    def parse_wzrysj(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """王者荣耀世界解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        div = soup.select_one("div.newslist")
+        if div is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for div_element in div.select("div.list"):
+            a = div_element.select_one("a")
+            if not a:
+                continue
+            h3 = a.select_one("div.title h3")
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="王者荣耀世界")
+            item["info"] = h3.get_text(strip=True)
+            item["link"] = href
+            items.append(item)
+        
+        return items
+    
+    def parse_nba2kol2(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """nba2kol2解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("ul.news_list")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li"):
+            a = li.select_one("a:nth-of-type(2)")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="nba2kol2")
+            item["info"] = a.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_nizhan(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """逆战解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.m_news_list ul")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li"):
+            a = li.select_one("p a:nth-of-type(2)")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="逆战")
+            item["info"] = a.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_qqxuanwu(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """qq炫舞解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.list_content ul")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li"):
+            a = li.select_one("a")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+            title = a.get("title", "").strip()
+
+            item = self._empty_item(source="QQ炫舞")
+            item["info"] = title
+            item["href"] = urljoin(target_url, href)
+            items.append(item)
+
+        return items
+    
+    def parse_sjzxd(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """三角洲解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.newsbox ul")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li"):
+            a = li.select_one("a")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+            h2 = a.select_one("h2")
+
+            item = self._empty_item(source="三角洲行动")
+            item["info"] = h2.get_text(strip=True)
+            item["link"] = href
+            items.append(item)
+
+        return items
+    
+
+
+
 
     # ---------------- 主入口 ----------------
     def run(self, site_name: str, target_url: str) -> List[Dict[str, Any]]:
