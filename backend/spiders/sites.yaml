@@ -61,4 +61,39 @@ sites:
   - game: 三角洲行动
     parser: 三角洲行动
     url: https://df.qq.com/cp/a20240906main/newslist.html
+    enabled: false
+
+  - game: QQ飞车
+    parser: QQ飞车
+    url: https://speed.qq.com/webplat/info/news_version3/147/14551/14572/14578/m22621/list_1.shtml
+    enabled: false
+  
+  - game: QQ炫舞2
+    parser: QQ炫舞2
+    url: https://5s.qq.com/webplat/info/news_version3/1434/36837/36838/m22573/list_1.shtml
+    enabled: false
+
+  - game: 英雄联盟
+    parser: 英雄联盟
+    url: https://lol.qq.com/news/index.shtml
+    enabled: false
+
+  - game: FIFAOnline4
+    parser: FIFAOnline4
+    url: https://fco.qq.com/webplat/info/news_version3/33965/34617/34618/m22651/list_1.shtml
+    enabled: false
+
+  - game: QQ三国
+    parser: QQ三国
+    url: https://sg.qq.com/webplat/info/news_version3/159/24483/24484/m17774/list_1.shtml
+    enabled: false
+  
+  - game: 金铲铲之战
+    parser: 金铲铲之战
+    url: https://jcc.qq.com/#/news
+    enabled: false
+  
+  - game: nba2kol
+    parser: nba2kol
+    url: https://nba2k.qq.com/webplat/info/news_version3/476/1874/1875/1876/m1747/list_1.shtml
     enabled: true
