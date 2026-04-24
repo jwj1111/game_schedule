@@ -1,0 +1,37 @@
+# ============================================================
+# 爬虫配置 - 站点清单 & 运行参数
+# 新增站点：在 sites 下追加一项；禁用某站点：enabled 置为 false
+# 本文件提交 Git，不含任何敏感信息
+# ============================================================
+
+# ---------- 调度配置（本轮仅记录，下一轮接入 APScheduler） ----------
+schedule:
+  interval_hours: 2          # 每 N 小时爬一次
+
+# ---------- 爬虫运行参数（对应 BaseSpider 的构造参数） ----------
+runtime:
+  headless: true             # 无头模式；调试时改 false 可看到浏览器
+  ignore_https_errors: false # 忽略 HTTPS 证书错误（内网/自签名站点才开）
+  timeout_seconds: 15        # 单次操作超时
+  retry_times: 3             # 失败重试次数
+
+# ---------- 站点清单 ----------
+# game   : 业务层游戏名（最终进数据库、前端展示用）
+# parser : 解析器 key，必须与 BaseSpider.parser_registry 中注册的一致
+# url    : 爬取目标地址
+# enabled: 临时停爬置为 false，无需删除配置
+sites:
+  - game: 火影忍者
+    parser: 火影忍者
+    url: https://hyrz.qq.com/web202003/newsList.html
+    enabled: true
+
+  - game: DNF
+    parser: DNF
+    url: https://dnf.qq.com/webplat/info/news_version3/119/495/m22990/list_1.shtml
+    enabled: true
+
+  - game: 无畏契约
+    parser: 无畏契约
+    url: https://val.qq.com/news.html?page=1&keyword=
+    enabled: true

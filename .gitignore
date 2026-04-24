@@ -1,0 +1,28 @@
+# 虚拟环境
+.venv/
+venv/
+
+# Python 产物
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 配置与数据
+.env
+*.db
+*.sqlite
+*.sqlite3
+data/*
+!data/.gitkeep
+logs/*
+!logs/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 爬虫临时输出
+*.xlsx
