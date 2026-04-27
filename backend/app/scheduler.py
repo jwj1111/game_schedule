@@ -3,7 +3,7 @@ APScheduler 定时任务管理。
 
 注册两个定时任务：
   1. 定时爬取 + 预处理 + 入库（间隔由 sites.yaml 的 interval 控制）
-  2. 定时过期清理（每周一次）
+  2. 定期过期清理（时间由 .env 的 CLEANUP_DAY + CLEANUP_HOUR 控制）
 """
 
 from __future__ import annotations
@@ -11,33 +11,18 @@ from __future__ import annotations
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from backend.app.config import CLEANUP_DAY, CLEANUP_HOUR, DATA_RETENTION_DAYS
-from backend.app.crud import bulk_insert_new, cleanup_expired
+from backend.app.crud import cleanup_expired
 from backend.app.database import SessionLocal
-from backend.app.preprocessor import preprocess
+from backend.app.pipeline import run_pipeline
 from backend.spiders.config import format_duration, load_sites_config
-from backend.spiders.runner import crawl_all
 
 _scheduler: BackgroundScheduler | None = None
 
 
 def _crawl_and_save():
-    """定时任务回调：爬取 → 预处理 → 入库。"""
+    """定时任务回调：完整流水线。"""
     print("\n[定时任务] 开始爬取...")
-    raw_items = crawl_all()
-    if not raw_items:
-        print("[定时任务] 无数据，跳过入库")
-        return
-
-    filtered = preprocess(raw_items)
-    if not filtered:
-        print("[定时任务] 预处理后无有效数据，跳过入库")
-        return
-
-    db = SessionLocal()
-    try:
-        bulk_insert_new(db, filtered)
-    finally:
-        db.close()
+    run_pipeline()
     print("[定时任务] 爬取入库完成")
 
 

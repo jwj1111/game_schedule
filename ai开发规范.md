@@ -94,9 +94,13 @@ game_schedule/                  # 项目根（= Git 仓库根）
 | `backend/app/config.py` | 读 `.env`，做本地/线上数据库切换 | ✅ |
 | `backend/app/database.py` | SQLAlchemy engine / Session / Base | ✅ |
 | `backend/app/models.py` | ORM 数据表模型 | ✅ |
+| `backend/app/schemas.py` | Pydantic 响应模型 | ✅ |
+| `backend/app/crud.py` | 数据库读写（去重入库 / 过期清理） | ✅ |
+| `backend/app/pipeline.py` | 完整流水线：爬取 → 预处理 → 入库 | ✅ |
+| `backend/app/preprocessor.py` | 入库前预处理（筛选 + 日期提取，独立可替换） | ✅ |
 | `backend/app/scheduler.py` | APScheduler 定时任务注册 | ✅ |
-| `backend/app/notifier.py` | 企业微信机器人推送封装 | ✅ |
-| `backend/spiders/` | 爬虫代码（至少一个基类 + 入库入口） | ✅ |
+| `backend/app/notifier.py` | 企业微信机器人推送封装（后续开发） | ✅ |
+| `backend/spiders/` | 爬虫代码（基类 + 批量爬取入口） | ✅ |
 | `frontend/index.html` | 单 HTML 前端 | ✅ |
 | `.env.example` | 配置模板 | ✅ |
 | `.gitignore` | Git 忽略规则 | ✅ |
@@ -120,7 +124,7 @@ game_schedule/                  # 项目根（= Git 仓库根）
 
 ### 4. 命名与归位原则
 
-- **后端业务代码**一律放在 `backend/app/`，爬虫单独放 `backend/spiders/`，两者通过函数/模块互相调用，禁止前端目录出现 Python 文件。
+- **后端业务代码**一律放在 `backend/app/`，爬虫单独放 `backend/spiders/`，app 可调用 spiders，spiders 不依赖 app。禁止前端目录出现 Python 文件。
 - **前端只有一个 HTML**，禁止新增 `.js` / `.css` / `.vue` 文件；可选 `frontend/assets/` 存本地小图标，但不得引入任何构建产物。
 - **部署文件**全部收敛到 `deploy/`，与业务代码隔离；第一阶段本地开发**不创建** `deploy/`，避免误用。
 - **模型、接口、调度、推送**四类代码各占一个文件（`models.py` / `api/*.py` / `scheduler.py` / `notifier.py`），不做过度拆分。
@@ -187,7 +191,6 @@ Thumbs.db
   - 单条详情查询
 - 编写数据管理接口：
   - 定时过期数据清理
-  - 数据状态更新
 - 集成企业微信机器人推送接口，配置推送触发规则
 - 本地接口测试：通过 `localhost:8000/docs` 验证所有接口正常
 

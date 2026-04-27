@@ -11,7 +11,7 @@
 | `base.py` | `BaseSpider` 爬虫基类：浏览器管理、通用请求、各站点解析器（`parse_xxx`） |
 | `sites.yaml` | 站点清单 + 运行参数 + 调度间隔配置（唯一配置来源） |
 | `config.py` | 读取 `sites.yaml`，返回结构化的 `SpiderConfig`（dataclass） |
-| `runner.py` | 批量执行入口：读配置 → 调 BaseSpider → 汇总结果 |
+| `runner.py` | 批量执行入口：读配置 → 调 BaseSpider → 存 JSON（纯爬取，零 app 依赖） |
 
 ---
 
@@ -20,7 +20,7 @@
 所有命令在**项目根目录**下执行：
 
 ```powershell
-# 完整跑一次全部站点（最常用）
+# 只爬取，存 JSON
 .\.venv\Scripts\python.exe -m backend.spiders.runner
 
 # 只检查配置是否正确（不爬，秒出结果）
@@ -105,7 +105,7 @@ schedule:
 | `2h` | 每 2 小时 |
 | `1d` | 每天 |
 
-> 爬虫脚本测试时，`interval` 仅被读取和打印，**不驱动定时任务**。后端接入 APScheduler 后自动生效。
+> 爬虫脚本测试时，`interval` 仅被读取和打印，**不驱动定时任务**。接入项目的 APScheduler 后自动生效。
 
 ### `runtime` — 运行参数
 
