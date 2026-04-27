@@ -1,17 +1,16 @@
 """
 爬虫批量执行入口。
 
-本轮职责：
-  1. 读 sites.yaml
-  2. 按配置批量调用 BaseSpider 抓取
-  3. 汇总结果 → 打印 + 存 data/crawl_preview.json 便于肉眼检查
-
-下一轮会在 crawl_all() 末尾加上 "写入数据库" 的步骤，
-当前保持仅返回 List[dict]，不做持久化。
+完整流水线：
+  1. 读 sites.yaml 配置
+  2. 批量调用 BaseSpider 抓取
+  3. 预处理：筛选含日期的标题 + 提取 online_date
+  4. 去重入库（SQLite / MySQL）
+  5. 可选：保存 JSON 调试产物
 
 用法：
-    # 本地直接跑（项目根目录下）
-    python -m backend.spiders.runner
+    # 项目根目录下
+    .\.venv\Scripts\python.exe -m backend.spiders.runner
 """
 
 from __future__ import annotations
@@ -21,19 +20,22 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
+from backend.app.config import DATA_RETENTION_DAYS
+from backend.app.crud import bulk_insert_new, cleanup_expired
+from backend.app.database import SessionLocal, init_db
+from backend.app.preprocessor import preprocess
 from backend.spiders.base import BaseSpider
 from backend.spiders.config import SpiderConfig, format_duration, load_sites_config
 
 # 调试产物目录（.gitignore 中 data/* 已忽略）
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-PREVIEW_DIR = PROJECT_ROOT / "data"
-PREVIEW_FILE = PREVIEW_DIR / "crawl_preview.json"
+PREVIEW_FILE = PROJECT_ROOT / "data" / "crawl_preview.json"
 
 
 def crawl_all(cfg: SpiderConfig | None = None) -> List[Dict[str, Any]]:
     """
     按配置批量爬取所有启用的站点。
-    返回：所有站点合并后的 item 列表。
+    返回：所有站点合并后的原始 item 列表。
     """
     cfg = cfg or load_sites_config()
     enabled = cfg.enabled_sites
@@ -57,7 +59,7 @@ def crawl_all(cfg: SpiderConfig | None = None) -> List[Dict[str, Any]]:
             print(f"\n>>> [{site.game}] 开始爬取：{site.url}")
             items = spider.run(site.parser, site.url)
 
-            # 用配置里的 game 覆盖解析器返回的默认值，保证业务语义统一
+            # 用配置里的 game 覆盖解析器返回的默认值
             for item in items:
                 item["game"] = site.game
 
@@ -65,31 +67,70 @@ def crawl_all(cfg: SpiderConfig | None = None) -> List[Dict[str, Any]]:
             print(f"<<< [{site.game}] 完成，本站点 {len(items)} 条")
 
     print("\n" + "=" * 60)
-    print(f"汇总：共抓到 {len(all_items)} 条")
+    print(f"爬取汇总：共抓到 {len(all_items)} 条原始数据")
     print("=" * 60)
 
     return all_items
 
 
 def save_preview(items: List[Dict[str, Any]], path: Path = PREVIEW_FILE) -> None:
-    """将抓取结果写入本地 JSON，便于肉眼检查；不做去重、不入库。"""
+    """将结果写入本地 JSON，便于肉眼检查。"""
     path.parent.mkdir(parents=True, exist_ok=True)
+
+    # date 对象序列化为字符串
+    def _serialize(obj):
+        if hasattr(obj, "isoformat"):
+            return obj.isoformat()
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
     payload = {
         "crawled_at": datetime.now().isoformat(timespec="seconds"),
         "count": len(items),
         "items": items,
     }
     with path.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+        json.dump(payload, f, ensure_ascii=False, indent=2, default=_serialize)
     print(f"调试产物已写入：{path}")
 
 
 def main() -> None:
-    items = crawl_all()
-    if items:
-        save_preview(items)
-    else:
-        print("没有抓到任何数据，未生成预览文件。")
+    """完整流水线：爬取 → 预处理 → 入库 → 清理。"""
+    # 确保数据库表存在
+    init_db()
+
+    # 1. 爬取
+    raw_items = crawl_all()
+    if not raw_items:
+        print("没有抓到任何数据，流程结束。")
+        return
+
+    # 2. 预处理：筛选 + 提取 online_date
+    filtered_items = preprocess(raw_items)
+    if not filtered_items:
+        print("预处理后无有效数据（没有标题包含日期），流程结束。")
+        return
+
+    # 3. 入库（去重）
+    db = SessionLocal()
+    try:
+        bulk_insert_new(db, filtered_items)
+    finally:
+        db.close()
+
+    # 4. 过期清理
+    if DATA_RETENTION_DAYS > 0:
+        db = SessionLocal()
+        try:
+            cleanup_expired(db, DATA_RETENTION_DAYS)
+        finally:
+            db.close()
+
+    # 5. 保存调试产物（预处理后的数据）
+    save_preview(filtered_items)
+
+    print("\n" + "=" * 60)
+    print("全流程完成")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
