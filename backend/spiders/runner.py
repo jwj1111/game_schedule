@@ -20,8 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-from backend.app.config import DATA_RETENTION_DAYS
-from backend.app.crud import bulk_insert_new, cleanup_expired
+from backend.app.crud import bulk_insert_new
 from backend.app.database import SessionLocal, init_db
 from backend.app.preprocessor import preprocess
 from backend.spiders.base import BaseSpider
@@ -94,7 +93,7 @@ def save_preview(items: List[Dict[str, Any]], path: Path = PREVIEW_FILE) -> None
 
 
 def main() -> None:
-    """完整流水线：爬取 → 预处理 → 入库 → 清理。"""
+    """完整流水线：爬取 → 预处理 → 入库。"""
     # 确保数据库表存在
     init_db()
 
@@ -117,15 +116,7 @@ def main() -> None:
     finally:
         db.close()
 
-    # 4. 过期清理
-    if DATA_RETENTION_DAYS > 0:
-        db = SessionLocal()
-        try:
-            cleanup_expired(db, DATA_RETENTION_DAYS)
-        finally:
-            db.close()
-
-    # 5. 保存调试产物（预处理后的数据）
+    # 4. 保存调试产物（预处理后的数据）
     save_preview(filtered_items)
 
     print("\n" + "=" * 60)

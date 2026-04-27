@@ -40,6 +40,10 @@ else:
 # ---------- 数据保留 ----------
 DATA_RETENTION_DAYS: int = int(os.getenv("DATA_RETENTION_DAYS", "60"))
 
+# ---------- 清理时间 ----------
+CLEANUP_DAY: str = os.getenv("CLEANUP_DAY", "mon")
+CLEANUP_HOUR: int = int(os.getenv("CLEANUP_HOUR", "3"))
+
 # ---------- 企微推送 ----------
 WECOM_WEBHOOK: str = os.getenv("WECOM_WEBHOOK", "")
 
