@@ -30,18 +30,19 @@
 | 定时任务 | APScheduler |
 | 部署工具 | Docker + Docker Compose |
 
-### 前端（最终定版）
+### 前端
 
-- **核心框架**：Vue3 CDN 全局引入（无工程化、无 npm、无打包、无 Node 环境）
-- **样式框架**：Tailwind CSS CDN 引入
-- **交互方式**：原生 Fetch 请求接口、Vue3 选项式 API
-- **禁用**：Vue CLI、Vite、Webpack、前端路由、组件拆分、npm 依赖
+- **构建工具**：Vite
+- **核心框架**：Vue3（单文件组件，组合式 API setup）
+- **样式框架**：Tailwind CSS
+- **UI 组件库**：按需引入（如 Element Plus / Ant Design Vue）
+- **部署**：Vite 构建为静态资源，Docker 中 Nginx 托管
 
 ---
 
 ## 二、项目核心原则（AI绝对不可违反）
 
-1. **极简开发**：本地全程无 Docker、无 MySQL、无前端构建工具，开箱即写
+1. **极简开发**：本地全程无 Docker、无 MySQL，开箱即写
 2. **环境隔离**：本地与线上配置完全分离，代码与数据物理隔离
 3. **数据安全**：任何迭代不删除、不污染线上数据库存量数据
 4. **流程不变**：前端迭代不破坏原有 Git、Docker 部署、服务器更新流程
@@ -66,8 +67,10 @@ game_schedule/                  # 项目根（= Git 仓库根）
 │   ├── spiders/                # 爬虫模块（每站点一个解析函数或一个类）
 │   └── requirements.txt        # 后端依赖清单（唯一依赖来源）
 │
-├── frontend/                   # 前端：纯 CDN，无工程化
-│   └── index.html              # 唯一入口，Vue3 + Tailwind，选项式 API
+├── frontend/                   # 前端：Vite + Vue3 工程
+│   ├── src/                    # 源码目录
+│   ├── package.json            # 前端依赖
+│   └── vite.config.js          # Vite 配置
 │
 ├── deploy/                     # 部署配置（第二阶段才创建，第一阶段留空或不建）
 │   ├── Dockerfile
@@ -101,7 +104,7 @@ game_schedule/                  # 项目根（= Git 仓库根）
 | `backend/app/scheduler.py` | APScheduler 定时任务注册 | ✅ |
 | `backend/app/notifier.py` | 企业微信机器人推送封装（后续开发） | ✅ |
 | `backend/spiders/` | 爬虫代码（基类 + 批量爬取入口） | ✅ |
-| `frontend/index.html` | 单 HTML 前端 | ✅ |
+| `frontend/` | Vite + Vue3 前端工程 | ✅ |
 | `.env.example` | 配置模板 | ✅ |
 | `.gitignore` | Git 忽略规则 | ✅ |
 | `README.md` | 项目说明 | ✅ |
@@ -125,7 +128,7 @@ game_schedule/                  # 项目根（= Git 仓库根）
 ### 4. 命名与归位原则
 
 - **后端业务代码**一律放在 `backend/app/`，爬虫单独放 `backend/spiders/`，app 可调用 spiders，spiders 不依赖 app。禁止前端目录出现 Python 文件。
-- **前端只有一个 HTML**，禁止新增 `.js` / `.css` / `.vue` 文件；可选 `frontend/assets/` 存本地小图标，但不得引入任何构建产物。
+- **前端代码**统一放在 `frontend/` 下，使用 Vite 构建；构建产物（`dist/`）不提交 Git，由 Docker 构建时生成。
 - **部署文件**全部收敛到 `deploy/`，与业务代码隔离；第一阶段本地开发**不创建** `deploy/`，避免误用。
 - **模型、接口、调度、推送**四类代码各占一个文件（`models.py` / `api/*.py` / `scheduler.py` / `notifier.py`），不做过度拆分。
 
@@ -154,6 +157,10 @@ Thumbs.db
 
 # 爬虫临时输出
 *.xlsx
+
+# 前端构建产物
+frontend/dist/
+frontend/node_modules/
 ```
 
 ### 6. 何时创建 `deploy/`
@@ -194,17 +201,18 @@ Thumbs.db
 - 集成企业微信机器人推送接口，配置推送触发规则
 - 本地接口测试：通过 `localhost:8000/docs` 验证所有接口正常
 
-#### 4. Vue3 CDN 前端开发
+#### 4. Vue3 前端开发
 
-- 新建单 HTML 文件，通过 CDN 引入 Vue3 和 Tailwind CSS
-- 采用 Vue3 选项式 API 编写，所有逻辑写在 HTML 内，无额外文件
+- 使用 Vite 初始化 Vue3 项目，集成 Tailwind CSS
+- 采用组合式 API（setup）编写，按需引入 UI 组件库
 - 实现核心功能：
-  - 全响应式布局，适配 PC / 平板 / 移动端
-  - 多条件筛选：按游戏类型、时间范围、关键词筛选
-  - 时间轴可视化展示，节点点击弹窗查看详情
-  - 数据加载状态、空数据提示、样式美化
-- 原生 Fetch 调用 FastAPI 接口，实现前后端数据联调
-- 本地直接打开 HTML 文件，测试所有交互功能
+  - 日历主面板：按月网格展示，支持年月跳转
+  - 多条件筛选：按游戏多选、时间范围、关键词搜索
+  - 单元格标签化展示，优先级色系映射
+  - 点击日期弹出详细列表，展示详情与链接
+  - 数据加载状态、空数据提示
+- 调用 FastAPI 接口，实现前后端数据联调
+- 本地通过 `npm run dev` 启动 Vite 开发服务器测试
 
 #### 5. 功能联调
 
@@ -227,7 +235,7 @@ Thumbs.db
 - 编写 Python 服务 Dockerfile，基于 Python 镜像，安装项目依赖
 - 编写 `docker-compose.yml`，包含 MySQL、FastAPI + 爬虫、Nginx 前端服务
 - MySQL 配置数据卷持久化，确保容器删除数据不丢失
-- Nginx 直接挂载前端 HTML 静态文件，无需构建
+- Nginx 托管前端构建产物（Vite build 输出的静态文件）
 
 #### 3. 环境配置分离
 
@@ -252,7 +260,7 @@ Thumbs.db
 
 1. **本地修改**：在本地完成代码修改 / 功能新增，全程用本地 SQLite 测试
    - 后端：修改爬虫、接口、定时任务、推送逻辑
-   - 前端：直接修改 HTML 文件，调整 Vue 逻辑、Tailwind 样式
+   - 前端：修改 Vue 组件、Tailwind 样式，`npm run dev` 本地热更新
 2. **本地自测**：确保修改后功能正常，无 BUG、无报错
 3. **Git 提交**：
    ```bash
@@ -263,7 +271,7 @@ Thumbs.db
 4. **服务器更新**：
    - 服务器进入项目目录，执行 `git pull` 拉取最新代码
    - 执行 `docker-compose up -d --build` 重启相关服务
-   - 前端修改仅需拉取代码后刷新页面，无需重启服务
+   - 前端修改需 `docker-compose up -d --build` 重新构建
 
 ### 分场景迭代要求
 
@@ -275,9 +283,9 @@ Thumbs.db
 
 #### 2. 新增 / 修改前端功能
 
-- 直接修改单 HTML 文件，编写 Vue3 逻辑、Tailwind 样式
-- 禁止新增前端依赖、禁止拆分多文件、禁止引入构建工具
-- 本地打开 HTML 直接测试，无需启动任何服务
+- 修改 `frontend/src/` 下的 Vue 组件和样式
+- 本地 `npm run dev` 热更新测试
+- 线上部署时 Docker 自动执行 `npm run build`，无需手动构建
 
 #### 3. 修改配置参数
 
@@ -295,27 +303,25 @@ Thumbs.db
 
 | 序号 | 禁止事项 |
 | :---: | --- |
-| 1 | ❌ 禁止本地安装 Docker、MySQL、Node.js 环境 |
-| 2 | ❌ 禁止将前端改为工程化 Vue，禁止使用 npm、打包构建 |
-| 3 | ❌ 禁止在代码中硬编码密码、密钥、接口地址 |
-| 4 | ❌ 禁止提交 `.env`、本地数据库文件至 Git 仓库 |
-| 5 | ❌ 禁止直接在服务器修改代码，所有修改必须本地完成 |
-| 6 | ❌ 禁止执行 `docker-compose down -v`，避免删除数据库数据卷 |
-| 7 | ❌ 禁止删除服务器项目文件，仅用 `git pull` 增量更新 |
-| 8 | ❌ 禁止编写无 WHERE 条件的 DELETE、TRUNCATE 语句 |
+| 1 | ❌ 禁止本地安装 Docker、MySQL |
+| 2 | ❌ 禁止在代码中硬编码密码、密钥、接口地址 |
+| 3 | ❌ 禁止提交 `.env`、本地数据库文件、`node_modules`、`dist` 至 Git 仓库 |
+| 4 | ❌ 禁止直接在服务器修改代码，所有修改必须本地完成 |
+| 5 | ❌ 禁止执行 `docker-compose down -v`，避免删除数据库数据卷 |
+| 6 | ❌ 禁止删除服务器项目文件，仅用 `git pull` 增量更新 |
+| 7 | ❌ 禁止编写无 WHERE 条件的 DELETE、TRUNCATE 语句 |
 
 ---
 
 ## 七、AI Vibe Coding 指令前缀（直接复制使用）
 
-> 请严格遵循本《游戏时间轴看板项目 全流程开发迭代规范》，基于 **Python + FastAPI + SQLAlchemy + Vue3 CDN + Tailwind CSS** 技术栈，帮我实现【填写具体功能需求】。
+> 请严格遵循本《游戏时间轴看板项目 全流程开发迭代规范》，基于 **Python + FastAPI + SQLAlchemy + Vite + Vue3 + Tailwind CSS** 技术栈，帮我实现【填写具体功能需求】。
 >
 > **要求**：
-> 1. 前端无 npm、无打包、纯 CDN 引入 Vue3 + Tailwind，选项式 API
+> 1. 前端使用 Vite + Vue3 组合式 API + Tailwind CSS
 > 2. 后端遵循双环境数据库切换，代码规范无冗余
-> 3. 不修改 Docker、`docker-compose.yml` 配置
-> 4. 不破坏原有迭代部署流程，代码可直接上线
-> 5. 功能完整，本地可直接运行测试
+> 3. 不破坏原有迭代部署流程，代码可直接上线
+> 4. 功能完整，本地可直接运行测试
 
 ---
 

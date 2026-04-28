@@ -11,13 +11,16 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `main.py` | FastAPI 入口：CORS 跨域、挂载路由、启动/关闭 APScheduler |
 | `config.py` | 读 `.env`，双环境自动切换（本地 SQLite / 线上 MySQL） |
 | `database.py` | SQLAlchemy engine / SessionLocal / Base / `get_db()` 依赖注入 |
-| `models.py` | ORM 模型 `GameNews`（去重约束 UNIQUE(game, info)） |
-| `schemas.py` | Pydantic 响应模型（接口返回的 JSON 结构） |
-| `crud.py` | 数据库操作：`bulk_insert_new()` 去重入库 / `cleanup_expired()` 过期清理 |
-| `pipeline.py` | 完整流水线：爬取 → 预处理 → 入库（编排 spiders + app） |
+| `models.py` | ORM 模型：GameNews / UserAnnotation / UserEvent / GameOwner |
+| `schemas.py` | Pydantic 请求体 + 响应模型 |
+| `crud.py` | 数据库操作：爬虫入库 / 过期清理 / 标注 / 事件 / 负责人 CRUD |
+| `pipeline.py` | 完整流水线：爬取 → 预处理 → 入库 |
 | `preprocessor.py` | 入库前预处理：筛选含"X月X日"的标题 + 提取 `online_date`（独立可替换） |
 | `scheduler.py` | APScheduler 注册：定时爬取入库 + 定期过期清理 |
-| `api/news.py` | 查询路由：全量 / 筛选 / 详情 / 游戏列表 |
+| `api/news.py` | 统一日历查询 + 游戏列表 |
+| `api/annotations.py` | 标注 CRUD（针对爬虫数据的附加属性） |
+| `api/events.py` | 自定义事件 CRUD |
+| `api/owners.py` | 游戏负责人管理 |
 
 ---
 
@@ -41,23 +44,46 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 
 ## 接口清单
 
-| 接口 | 方法 | 参数 | 说明 |
-| --- | --- | --- | --- |
-| `/` | GET | - | 健康检查 |
-| `/api/games` | GET | - | 数据库中所有游戏名（去重，前端下拉框用） |
-| `/api/news` | GET | `game` `keyword` `start` `end` `page` `page_size` | 多条件筛选查询，按 online_date 降序，支持分页 |
-| `/api/news/{news_id}` | GET | 路径参数 id | 单条详情 |
+### 查询
 
-### `/api/news` 参数说明
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/` | GET | 健康检查 |
+| `/api/calendar` | GET | 统一查询（合并爬虫+标注+事件），按月加载 |
+| `/api/games` | GET | 所有游戏名（爬虫+事件+负责人三表去重） |
+
+#### `/api/calendar` 参数
 
 | 参数 | 类型 | 必填 | 示例 |
 | --- | --- | :---: | --- |
-| `game` | string | 否 | `DNF` |
+| `start_date` | date | 是 | `2026-04-01` |
+| `end_date` | date | 是 | `2026-04-30` |
+| `games` | string | 否 | `DNF,LOL`（逗号分隔） |
 | `keyword` | string | 否 | `更新公告` |
-| `start` | date | 否 | `2026-03-01` |
-| `end` | date | 否 | `2026-04-30` |
-| `page` | int | 否 | `1`（默认） |
-| `page_size` | int | 否 | `50`（默认，最大 200） |
+
+### 标注
+
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/api/annotations/{news_id}` | GET | 获取某条爬虫数据的标注 |
+| `/api/annotations/{news_id}` | PUT | 创建或更新标注（优先级/别名/资源位/隐藏） |
+
+### 自定义事件
+
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/api/events` | POST | 新建事件 |
+| `/api/events/{id}` | PUT | 修改事件 |
+| `/api/events/{id}` | DELETE | 删除事件（物理删除） |
+
+### 游戏负责人
+
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/api/owners` | GET | 全部游戏负责人 |
+| `/api/owners/{game}` | GET | 单个游戏负责人 |
+| `/api/owners` | POST | 新增游戏负责人 |
+| `/api/owners/{game}` | PUT | 修改负责人列表 |
 
 ---
 
@@ -114,7 +140,7 @@ else       → 今年
 ### 如何替换为 AI 版本
 
 1. 新建 `preprocessor_ai.py`，实现同签名的 `preprocess()` 函数
-2. `runner.py` 和 `scheduler.py` 改一行 import
+2. `pipeline.py` 和 `scheduler.py` 改一行 import
 3. 其余代码零改动
 
 函数签名契约：
@@ -129,17 +155,50 @@ def preprocess(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 ## 数据库表结构
 
+### `game_news`（爬虫原始数据，只读）
+
 ```
-game_news
 ├── id            INTEGER PRIMARY KEY AUTOINCREMENT
 ├── game          VARCHAR(50)   NOT NULL, INDEX
 ├── info          VARCHAR(500)  NOT NULL
 ├── link          VARCHAR(1000) NOT NULL
 ├── online_date   DATE          NOT NULL, INDEX
 ├── created_at    DATETIME      NOT NULL DEFAULT now
-└── UNIQUE(game, info)          -- 去重约束
+└── UNIQUE(game, info)
 ```
 
-- **去重**：`game + info` 联合唯一，同游戏同标题不重复入库
-- **清理**：`online_date < 今天 - N 天` 的记录直接删除
+### `user_annotation`（用户标注，关联爬虫表）
+
+```
+├── id              INTEGER PRIMARY KEY AUTOINCREMENT
+├── news_id         INTEGER NOT NULL, UNIQUE, FK → game_news.id (CASCADE)
+├── priority        INTEGER NOT NULL DEFAULT 0    (3=高/2=中/1=低/0=无)
+├── alias           VARCHAR(200) NOT NULL DEFAULT ''
+├── resource_ready  BOOLEAN NOT NULL DEFAULT FALSE
+└── hidden          BOOLEAN NOT NULL DEFAULT FALSE
+```
+
+### `user_event`（自定义事件）
+
+```
+├── id              INTEGER PRIMARY KEY AUTOINCREMENT
+├── game            VARCHAR(50)  NOT NULL, INDEX
+├── description     VARCHAR(500) NOT NULL
+├── event_date      DATE         NOT NULL, INDEX
+├── priority        INTEGER NOT NULL DEFAULT 0
+├── resource_ready  BOOLEAN NOT NULL DEFAULT FALSE
+├── alias           VARCHAR(200) NOT NULL DEFAULT ''
+└── created_at      DATETIME NOT NULL DEFAULT now
+```
+
+### `game_owner`（游戏负责人映射）
+
+```
+├── id      INTEGER PRIMARY KEY AUTOINCREMENT
+├── game    VARCHAR(50) NOT NULL, UNIQUE, INDEX
+└── owners  JSON NOT NULL DEFAULT []
+```
+
+- **去重**：`game_news` 按 `game + info` 联合唯一
+- **级联**：删除 `game_news` 记录时，关联的 `user_annotation` 自动删除
 - **双环境**：同一份 ORM 代码，SQLite / MySQL 自动切换

@@ -17,7 +17,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.api.annotations import router as annotations_router
+from backend.app.api.events import router as events_router
 from backend.app.api.news import router as news_router
+from backend.app.api.owners import router as owners_router
 from backend.app.database import init_db
 from backend.app.scheduler import shutdown_scheduler, start_scheduler
 
@@ -25,22 +28,19 @@ from backend.app.scheduler import shutdown_scheduler, start_scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """FastAPI 生命周期：启动时初始化，关闭时清理。"""
-    # startup
     init_db()
     start_scheduler()
     yield
-    # shutdown
     shutdown_scheduler()
 
 
 app = FastAPI(
     title="游戏时间轴看板 API",
-    description="多游戏资讯聚合查询接口",
-    version="1.0.0",
+    description="多游戏资讯聚合查询 + 标注 + 自定义事件 + 负责人管理",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
-# CORS 跨域：本地前端直接打开 HTML 文件时 origin 为 null 或 file://
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -51,6 +51,9 @@ app.add_middleware(
 
 # 挂载路由
 app.include_router(news_router)
+app.include_router(annotations_router)
+app.include_router(events_router)
+app.include_router(owners_router)
 
 
 @app.get("/", tags=["health"])

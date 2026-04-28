@@ -2,76 +2,113 @@
 数据查询路由。
 
 接口：
-  GET /api/news          全量 / 按游戏 / 按时间范围 / 关键词筛选（支持分页）
-  GET /api/news/{id}     单条详情
-  GET /api/games         所有游戏名列表（前端筛选下拉框用）
+  GET /api/calendar    统一查询（合并爬虫+标注+事件，按月日历加载）
+  GET /api/games       所有游戏名列表
 """
 
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import union_all
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
-from backend.app.models import GameNews
-from backend.app.schemas import GamesListResponse, NewsItem, NewsListResponse
+from backend.app.models import GameNews, GameOwner, UserAnnotation, UserEvent
+from backend.app.schemas import CalendarItem, CalendarResponse, GamesListResponse
 
-router = APIRouter(prefix="/api", tags=["news"])
+router = APIRouter(prefix="/api", tags=["query"])
 
 
-@router.get("/news", response_model=NewsListResponse)
-def list_news(
-    game: Optional[str] = Query(None, description="按游戏名筛选"),
+@router.get("/calendar", response_model=CalendarResponse)
+def calendar_query(
+    start_date: date = Query(..., description="起始日期（含）"),
+    end_date: date = Query(..., description="截止日期（含）"),
+    games: Optional[str] = Query(None, description="游戏名，多个逗号分隔"),
     keyword: Optional[str] = Query(None, description="标题关键词搜索"),
-    start: Optional[date] = Query(None, description="上线日期起始（含）"),
-    end: Optional[date] = Query(None, description="上线日期截止（含）"),
-    page: int = Query(1, ge=1, description="页码"),
-    page_size: int = Query(50, ge=1, le=200, description="每页条数"),
     db: Session = Depends(get_db),
 ):
-    """全量 / 多条件筛选查询，按 online_date 降序，支持分页。"""
-    query = db.query(GameNews)
+    """
+    统一日历查询：合并爬虫数据 + 用户事件，附带标注和负责人信息。
+    排序：日期升序 + 优先级降序。
+    隐藏的爬虫数据不返回。
+    """
+    game_list = [g.strip() for g in games.split(",") if g.strip()] if games else []
 
-    if game:
-        query = query.filter(GameNews.game == game)
-    if keyword:
-        query = query.filter(GameNews.info.contains(keyword))
-    if start:
-        query = query.filter(GameNews.online_date >= start)
-    if end:
-        query = query.filter(GameNews.online_date <= end)
+    # 预加载所有负责人映射（数据量小，一次查完）
+    owner_map = {o.game: o.owners for o in db.query(GameOwner).all()}
 
-    total = query.count()
-    items = (
-        query
-        .order_by(GameNews.online_date.desc(), GameNews.id.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
+    items: List[CalendarItem] = []
+
+    # ---- 爬虫数据 + 标注 ----
+    news_query = db.query(GameNews).filter(
+        GameNews.online_date >= start_date,
+        GameNews.online_date <= end_date,
     )
+    if game_list:
+        news_query = news_query.filter(GameNews.game.in_(game_list))
+    if keyword:
+        news_query = news_query.filter(GameNews.info.contains(keyword))
 
-    return NewsListResponse(total=total, items=items)
+    for news in news_query.all():
+        ann = news.annotation
+        # 跳过被隐藏的
+        if ann and ann.hidden:
+            continue
 
+        items.append(CalendarItem(
+            id=news.id,
+            source="news",
+            game=news.game,
+            title=news.info,
+            link=news.link,
+            item_date=news.online_date,
+            priority=ann.priority if ann else 0,
+            alias=ann.alias if ann else "",
+            resource_ready=ann.resource_ready if ann else False,
+            hidden=False,
+            owners=owner_map.get(news.game, []),
+        ))
 
-@router.get("/news/{news_id}", response_model=NewsItem)
-def get_news_detail(news_id: int, db: Session = Depends(get_db)):
-    """单条详情查询。"""
-    record = db.query(GameNews).filter(GameNews.id == news_id).first()
-    if not record:
-        raise HTTPException(status_code=404, detail="记录不存在")
-    return record
+    # ---- 用户事件 ----
+    event_query = db.query(UserEvent).filter(
+        UserEvent.event_date >= start_date,
+        UserEvent.event_date <= end_date,
+    )
+    if game_list:
+        event_query = event_query.filter(UserEvent.game.in_(game_list))
+    if keyword:
+        event_query = event_query.filter(UserEvent.description.contains(keyword))
+
+    for event in event_query.all():
+        items.append(CalendarItem(
+            id=event.id,
+            source="event",
+            game=event.game,
+            title=event.description,
+            link="",
+            item_date=event.event_date,
+            priority=event.priority,
+            alias=event.alias,
+            resource_ready=event.resource_ready,
+            hidden=False,
+            owners=owner_map.get(event.game, []),
+        ))
+
+    # 排序：日期升序 + 优先级降序
+    items.sort(key=lambda x: (x.item_date, -x.priority))
+
+    return CalendarResponse(total=len(items), items=items)
 
 
 @router.get("/games", response_model=GamesListResponse)
 def list_games(db: Session = Depends(get_db)):
-    """返回当前数据库中所有游戏名（去重，按名称排序）。"""
-    rows = (
-        db.query(GameNews.game)
-        .distinct()
-        .order_by(GameNews.game)
-        .all()
-    )
-    return GamesListResponse(games=[r[0] for r in rows])
+    """返回当前所有游戏名（爬虫 + 事件 + 负责人表去重合并）。"""
+    news_games = {r[0] for r in db.query(GameNews.game).distinct().all()}
+    event_games = {r[0] for r in db.query(UserEvent.game).distinct().all()}
+    owner_games = {r[0] for r in db.query(GameOwner.game).distinct().all()}
+
+    all_games = sorted(news_games | event_games | owner_games)
+    return GamesListResponse(games=all_games)
