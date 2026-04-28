@@ -1,44 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>游戏时间轴看板</title>
-
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Vue 3 CDN -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-</head>
-
-<body class="bg-slate-50 text-slate-800">
-    <div id="app" class="min-h-screen">
-        <header class="p-6 border-b bg-white shadow-sm">
-            <h1 class="text-2xl font-bold">{{ title }}</h1>
-            <p class="text-sm text-slate-500 mt-1">骨架已就绪，待业务功能实现</p>
-        </header>
-
-        <main class="p-6">
-            <p>{{ message }}</p>
-        </main>
-    </div>
-
-    <script>
-        const { createApp } = Vue;
-
-        createApp({
-            data() {
-                return {
-                    title: '游戏时间轴看板',
-                    message: '前端骨架 OK，后续在此文件内补全筛选 / 时间轴 / 详情弹窗等功能。',
-                };
-            },
-            mounted() {
-                // TODO: 调用后端接口加载数据
-                // fetch('http://localhost:8000/api/news').then(r => r.json()).then(...)
-            },
-        }).mount('#app');
-    </script>
-</body>
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <title>游戏资讯日历看板</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>

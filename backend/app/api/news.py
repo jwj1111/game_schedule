@@ -12,12 +12,11 @@ from datetime import date
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import union_all
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.models import GameNews, GameOwner, UserAnnotation, UserEvent
-from backend.app.schemas import CalendarItem, CalendarResponse, GamesListResponse
+from backend.app.schemas import CalendarItem, CalendarResponse, GamesListResponse, HiddenListResponse
 
 router = APIRouter(prefix="/api", tags=["query"])
 
@@ -27,18 +26,34 @@ def calendar_query(
     start_date: date = Query(..., description="起始日期（含）"),
     end_date: date = Query(..., description="截止日期（含）"),
     games: Optional[str] = Query(None, description="游戏名，多个逗号分隔"),
+    owners: Optional[str] = Query(None, description="负责人，多个逗号分隔"),
     keyword: Optional[str] = Query(None, description="标题关键词搜索"),
     db: Session = Depends(get_db),
 ):
     """
     统一日历查询：合并爬虫数据 + 用户事件，附带标注和负责人信息。
     排序：日期升序 + 优先级降序。
-    隐藏的爬虫数据不返回。
+    支持按游戏 + 按负责人联合筛选。
     """
     game_list = [g.strip() for g in games.split(",") if g.strip()] if games else []
+    owner_list = [o.strip() for o in owners.split(",") if o.strip()] if owners else []
 
-    # 预加载所有负责人映射（数据量小，一次查完）
+    # 预加载所有负责人映射
     owner_map = {o.game: o.owners for o in db.query(GameOwner).all()}
+
+    # 如果按负责人筛选，先找出该负责人对应的游戏
+    if owner_list:
+        owner_games = [
+            game for game, game_owners in owner_map.items()
+            if any(o in game_owners for o in owner_list)
+        ]
+        # 与游戏筛选取并集
+        if game_list:
+            game_list = list(set(game_list) | set(owner_games))
+        else:
+            game_list = owner_games
+        if not game_list:
+            return CalendarResponse(total=0, items=[])
 
     items: List[CalendarItem] = []
 
@@ -54,9 +69,7 @@ def calendar_query(
 
     for news in news_query.all():
         ann = news.annotation
-        # 跳过被隐藏的
-        if ann and ann.hidden:
-            continue
+        is_hidden = bool(ann and ann.hidden)
 
         items.append(CalendarItem(
             id=news.id,
@@ -68,7 +81,7 @@ def calendar_query(
             priority=ann.priority if ann else 0,
             alias=ann.alias if ann else "",
             resource_ready=ann.resource_ready if ann else False,
-            hidden=False,
+            hidden=is_hidden,
             owners=owner_map.get(news.game, []),
         ))
 
@@ -112,3 +125,41 @@ def list_games(db: Session = Depends(get_db)):
 
     all_games = sorted(news_games | event_games | owner_games)
     return GamesListResponse(games=all_games)
+
+
+@router.get("/owner-names", response_model=dict)
+def list_owner_names(db: Session = Depends(get_db)):
+    """返回所有负责人姓名（去重，前端筛选下拉框用）。"""
+    all_owners = set()
+    for record in db.query(GameOwner).all():
+        for name in record.owners:
+            all_owners.add(name)
+    return {"owners": sorted(all_owners)}
+
+
+@router.get("/hidden", response_model=HiddenListResponse)
+def list_hidden(db: Session = Depends(get_db)):
+    """返回所有被隐藏的爬虫数据（用于恢复显示）。"""
+    rows = (
+        db.query(GameNews, UserAnnotation)
+        .join(UserAnnotation, GameNews.id == UserAnnotation.news_id)
+        .filter(UserAnnotation.hidden == True)
+        .order_by(GameNews.online_date.desc())
+        .all()
+    )
+    items = []
+    for news, ann in rows:
+        items.append(CalendarItem(
+            id=news.id,
+            source="news",
+            game=news.game,
+            title=news.info,
+            link=news.link,
+            item_date=news.online_date,
+            priority=ann.priority,
+            alias=ann.alias,
+            resource_ready=ann.resource_ready,
+            hidden=True,
+            owners=[],
+        ))
+    return HiddenListResponse(total=len(items), items=items)

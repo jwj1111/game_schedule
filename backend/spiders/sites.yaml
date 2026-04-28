@@ -8,7 +8,7 @@
 schedule:
   # 爬取间隔，单字段 + 单位；最小单位：分钟
   # 支持：m(分钟) / h(小时) / d(天)，例：30m / 2h / 1d
-  interval: 12h
+  interval: 2h
 
 # ---------- 爬虫运行参数（对应 BaseSpider 的构造参数） ----------
 runtime:
@@ -36,64 +36,4 @@ sites:
   - game: 无畏契约
     parser: 无畏契约
     url: https://val.qq.com/news.html?page=1&keyword=
-    enabled: true
-
-  - game: 王者荣耀世界
-    parser: 王者荣耀世界
-    url: https://world.qq.com/web202603/news-list.html?st=0
-    enabled: true
-
-  - game: nba2kol2
-    parser: nba2kol2
-    url: https://nba2k2.qq.com/webplat/info/news_version3/30714/33557/m19596/list_1.shtml
-    enabled: true
-  
-  - game: 逆战
-    parser: 逆战
-    url: https://nz.qq.com/webplat/info/news_version3/1421/2253/2254/2255/m22569/list_1.shtml
-    enabled: true
-  
-  - game: QQ炫舞
-    parser: QQ炫舞
-    url: https://x5.qq.com/webplat/info/news_version3/146/35241/35242/35256/m20406/list_1.shtml
-    enabled: true
-
-  - game: 三角洲行动
-    parser: 三角洲行动
-    url: https://df.qq.com/cp/a20240906main/newslist.html
-    enabled: true
-
-  - game: QQ飞车
-    parser: QQ飞车
-    url: https://speed.qq.com/webplat/info/news_version3/147/14551/14572/14578/m22621/list_1.shtml
-    enabled: true
-  
-  - game: QQ炫舞2
-    parser: QQ炫舞2
-    url: https://5s.qq.com/webplat/info/news_version3/1434/36837/36838/m22573/list_1.shtml
-    enabled: true
-
-  - game: 英雄联盟
-    parser: 英雄联盟
-    url: https://lol.qq.com/news/index.shtml
-    enabled: true
-
-  - game: FIFAOnline4
-    parser: FIFAOnline4
-    url: https://fco.qq.com/webplat/info/news_version3/33965/34617/34618/m22651/list_1.shtml
-    enabled: true
-
-  - game: QQ三国
-    parser: QQ三国
-    url: https://sg.qq.com/webplat/info/news_version3/159/24483/24484/m17774/list_1.shtml
-    enabled: true
-  
-  - game: 金铲铲之战
-    parser: 金铲铲之战
-    url: https://jcc.qq.com/#/news
-    enabled: true
-  
-  - game: nba2kol
-    parser: nba2kol
-    url: https://nba2k.qq.com/webplat/info/news_version3/476/1874/1875/1876/m1747/list_1.shtml
     enabled: true

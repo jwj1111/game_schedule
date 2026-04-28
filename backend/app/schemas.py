@@ -33,6 +33,12 @@ class CalendarResponse(BaseModel):
     items: List[CalendarItem]
 
 
+class HiddenListResponse(BaseModel):
+    """已隐藏数据列表响应"""
+    total: int
+    items: List[CalendarItem]
+
+
 # ==================== 游戏列表 ====================
 
 class GamesListResponse(BaseModel):

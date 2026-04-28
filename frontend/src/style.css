@@ -1,0 +1,298 @@
+@import "tailwindcss";
+
+/* ===== 全局基础样式 ===== */
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: #fafafa;
+  color: #555;
+  font-size: 0.8125rem; /* 13px base */
+  line-height: 1.5;
+  font-kerning: normal;
+  -webkit-font-smoothing: antialiased;
+}
+#app { min-height: 100vh; }
+
+/* ============================================================
+   Element Plus 样式覆盖
+   变量已在 main.js 的 document.documentElement.style 中统一设置
+   这里只处理 CSS 变量无法覆盖的样式规则
+   ============================================================ */
+
+:root {
+  --el-border-radius-base: 6px;
+  --el-border-radius-small: 4px;
+  --el-fill-color-blank: #fff;
+  --el-fill-color-light: #f5f5f5;
+  --el-text-color-primary: #111;
+  --el-text-color-regular: #555;
+  --el-text-color-secondary: #999;
+  --el-text-color-placeholder: #ccc;
+  --el-font-size-base: 13px;
+  --el-font-size-small: 12px;
+  --el-box-shadow: none;
+  --el-box-shadow-light: none;
+  --el-box-shadow-lighter: none;
+  --el-box-shadow-dark: none;
+}
+
+/* --- 弹窗/浮层 --- */
+.el-dialog, .el-drawer, .el-select-dropdown,
+.el-popover, .el-popper, .el-picker-panel {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* --- 按钮 --- */
+.el-button {
+  --el-button-text-color: #555 !important;
+  --el-button-bg-color: #fff !important;
+  --el-button-border-color: #e5e5e5 !important;
+  --el-button-hover-text-color: #111 !important;
+  --el-button-hover-bg-color: #f5f5f5 !important;
+  --el-button-hover-border-color: #e5e5e5 !important;
+  --el-button-active-text-color: #111 !important;
+  --el-button-active-bg-color: #ebebeb !important;
+  --el-button-active-border-color: #ccc !important;
+  --el-button-disabled-text-color: #ccc !important;
+  --el-button-disabled-bg-color: #fafafa !important;
+  --el-button-disabled-border-color: #e5e5e5 !important;
+}
+.el-button--primary {
+  --el-button-text-color: #fff !important;
+  --el-button-bg-color: #111 !important;
+  --el-button-border-color: #111 !important;
+  --el-button-hover-text-color: #fff !important;
+  --el-button-hover-bg-color: #333 !important;
+  --el-button-hover-border-color: #333 !important;
+  --el-button-active-text-color: #fff !important;
+  --el-button-active-bg-color: #000 !important;
+  --el-button-active-border-color: #000 !important;
+  --el-button-disabled-text-color: #fff !important;
+  --el-button-disabled-bg-color: #ccc !important;
+  --el-button-disabled-border-color: #ccc !important;
+}
+.el-button--primary.is-plain {
+  --el-button-text-color: #111 !important;
+  --el-button-bg-color: #f5f5f5 !important;
+  --el-button-border-color: #e5e5e5 !important;
+  --el-button-hover-text-color: #111 !important;
+  --el-button-hover-bg-color: #ebebeb !important;
+  --el-button-hover-border-color: #ccc !important;
+}
+.el-button.is-text, .el-button--text {
+  --el-button-text-color: #555 !important;
+  --el-button-hover-text-color: #111 !important;
+  --el-button-hover-bg-color: #f5f5f5 !important;
+}
+.el-button.is-link {
+  --el-button-text-color: #555 !important;
+  --el-button-hover-text-color: #111 !important;
+}
+
+/* --- Select 下拉选中/hover --- */
+.el-select .el-input .el-select__caret { color: #999 !important; }
+.el-select .el-input.is-focus .el-select__caret { color: #555 !important; }
+.el-select-dropdown__item.is-selected { color: #111 !important; font-weight: 600 !important; }
+.el-select-dropdown__item:hover { background-color: #f5f5f5 !important; }
+.el-select .el-tag {
+  --el-tag-bg-color: #f0f0f0 !important;
+  --el-tag-border-color: #e5e5e5 !important;
+  --el-tag-text-color: #555 !important;
+}
+
+/* --- Radio Button --- */
+.el-radio-button__inner {
+  border-color: #e5e5e5 !important;
+  color: #555 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  transition: all 150ms !important;
+}
+.el-radio-button__inner:hover { color: #111 !important; background: #f5f5f5 !important; }
+.el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background-color: #111 !important;
+  border-color: #111 !important;
+  color: #fff !important;
+  box-shadow: -1px 0 0 0 #111 !important;
+}
+.el-radio-button:first-child .el-radio-button__inner { border-left-color: #e5e5e5 !important; }
+
+/* --- Radio / Checkbox --- */
+.el-radio__input.is-checked .el-radio__inner { background-color: #111 !important; border-color: #111 !important; }
+.el-radio__input.is-checked + .el-radio__label { color: #111 !important; }
+.el-checkbox__input.is-checked .el-checkbox__inner { background-color: #111 !important; border-color: #111 !important; }
+.el-checkbox__input.is-checked + .el-checkbox__label { color: #111 !important; }
+.el-checkbox__inner:hover { border-color: #999 !important; }
+
+/* --- Switch（iOS 绿色） --- */
+.el-switch.is-checked .el-switch__core { background-color: #34c759 !important; border-color: #34c759 !important; }
+.el-switch .el-switch__core { border-color: #ddd !important; }
+.el-switch__core:hover { border-color: #999 !important; }
+
+/* --- Tabs --- */
+.el-tabs__active-bar { background-color: #111 !important; }
+.el-tabs__item { color: #999 !important; }
+.el-tabs__item:hover { color: #555 !important; }
+.el-tabs__item.is-active { color: #111 !important; }
+
+/* --- Date Picker --- */
+.el-date-table td.current .el-date-table-cell__text { background-color: #111 !important; color: #fff !important; }
+.el-date-table td.today .el-date-table-cell__text { color: #111 !important; font-weight: 700 !important; }
+.el-date-table td.available:hover .el-date-table-cell__text { color: #111 !important; }
+.el-date-picker__header-label:hover,
+.el-date-picker .el-picker-panel__icon-btn:hover { color: #111 !important; }
+.el-year-table td.current .el-year-table__cell-text,
+.el-month-table td.current .el-month-table__cell-text { background-color: #111 !important; color: #fff !important; }
+
+/* 移动端日期选择器面板适配 */
+@media (max-width: 767px) {
+  .el-picker-panel {
+    max-width: calc(100vw - 32px) !important;
+  }
+}
+
+/* --- Tag --- */
+.el-tag { --el-tag-bg-color: #f5f5f5; --el-tag-border-color: #e5e5e5; --el-tag-text-color: #555; }
+.el-tag--info { --el-tag-bg-color: #f5f5f5; --el-tag-border-color: #e5e5e5; --el-tag-text-color: #555; }
+.el-tag .el-tag__close:hover { background-color: #999 !important; color: #fff !important; }
+
+/* --- Loading --- */
+.el-loading-spinner .circular .path { stroke: #111 !important; }
+.el-loading-spinner .el-loading-text { color: #555 !important; }
+
+/* --- Dialog / Drawer --- */
+.el-dialog__title, .el-drawer__title { color: #111 !important; font-weight: 600 !important; font-size: 15px !important; }
+.el-dialog__headerbtn:hover .el-dialog__close,
+.el-drawer__close-btn:hover { color: #111 !important; }
+/* --- Form label 不触发输入框聚焦 --- */
+.el-form-item__label { color: #555 !important; pointer-events: none; }
+
+/* --- Popconfirm --- */
+.el-popconfirm__action .el-button--primary { background-color: #111 !important; border-color: #111 !important; }
+
+/* --- Message --- */
+.el-message--success .el-message__content { color: #111 !important; }
+
+/* --- 链接 --- */
+a { color: #555; text-decoration: none; }
+a:hover { color: #111; }
+.detail-link:hover { color: #111 !important; }
+
+/* --- focus outline 禁用 --- */
+*:focus-visible { outline: none !important; }
+
+/* ============================================================
+   动效系统
+   ============================================================ */
+
+:root {
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 350ms;
+}
+
+/* --- 入场淡入 --- */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* --- 日历网格淡入 --- */
+.calendar-enter {
+  animation: fade-in-scale var(--duration-slow) var(--ease-out-quart) both;
+}
+
+/* --- 统计卡交错入场 --- */
+.stats-enter {
+  animation: fade-in var(--duration-slow) var(--ease-out-quart) both;
+}
+.stats-enter:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+/* --- 日历标签 hover 微反馈 --- */
+.tag-hover {
+  transition: transform var(--duration-fast) var(--ease-out-quart),
+              box-shadow var(--duration-fast) var(--ease-out-quart);
+}
+.tag-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* --- 移动端筛选面板展开 --- */
+.filter-panel-enter {
+  animation: fade-in var(--duration-normal) var(--ease-out-quart) both;
+}
+
+/* --- prefers-reduced-motion --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --- 今日圆形底标 --- */
+.today-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #111;
+  color: #fff;
+  line-height: 1;
+}
+@media (min-width: 768px) {
+  .today-badge {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* --- pill 按钮按压回弹 --- */
+.pill-press {
+  transition: transform var(--duration-fast) var(--ease-out-quart),
+              background-color var(--duration-fast),
+              color var(--duration-fast),
+              border-color var(--duration-fast);
+}
+.pill-press:active {
+  transform: scale(0.93);
+}
+
+/* --- 月份切换方向滑入 --- */
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.calendar-slide-left {
+  animation: slide-in-left var(--duration-slow) var(--ease-out-quart) both;
+}
+.calendar-slide-right {
+  animation: slide-in-right var(--duration-slow) var(--ease-out-quart) both;
+}
+
+/* --- 日期格脉冲高亮 --- */
+@keyframes cell-pulse {
+  0% { box-shadow: inset 0 0 0 0 rgba(17,17,17,0); }
+  40% { box-shadow: inset 0 0 0 2px rgba(17,17,17,0.15); }
+  100% { box-shadow: inset 0 0 0 0 rgba(17,17,17,0); }
+}
+.cell-pulse {
+  animation: cell-pulse 600ms var(--ease-out-quart) both;
+}
