@@ -9,6 +9,7 @@ import AnnotationForm from './components/AnnotationForm.vue'
 import EventForm from './components/EventForm.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import StatsCard from './components/StatsCard.vue'
+import QuickManage from './components/QuickManage.vue'
 import {
   fetchCalendar, fetchGames, fetchOwnerNames,
   updateAnnotation,
@@ -195,6 +196,15 @@ const keyStats = computed(() => {
   }
   const monthPrefix = `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}`
   return buildStats(statsSourceData.value.filter(i => !i.hidden && i.item_date.startsWith(monthPrefix) && i.priority > 0))
+})
+
+// 快速管理的数据源（和统计面板一致）
+const quickManageItems = computed(() => {
+  if (rangeData.value !== null) {
+    return statsSourceData.value.filter(i => !i.hidden)
+  }
+  const monthPrefix = `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}`
+  return filteredData.value.filter(i => !i.hidden && i.item_date.startsWith(monthPrefix))
 })
 
 async function loadData() {
@@ -559,6 +569,22 @@ const statsExpanded = ref(true)
             :stats="keyStats"
           />
         </div>
+      </div>
+    </div>
+
+    <!-- 快速管理 -->
+    <div class="mt-6 md:mt-10">
+      <div class="p-4 md:py-5 md:px-6" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px">
+        <QuickManage
+          :items="quickManageItems"
+          @edit-annotation="onEditAnnotation"
+          @hide-news="onHideNews"
+          @edit-event="onEditEvent"
+          @delete-event="onDeleteEvent"
+          @add-event="onAddEventForDate"
+          @quick-priority="onQuickPriority"
+          @quick-resource="onQuickResource"
+        />
       </div>
     </div>
 
