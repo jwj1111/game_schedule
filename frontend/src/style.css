@@ -316,3 +316,17 @@ a:hover { color: #111; }
 .cell-pulse {
   animation: cell-pulse 600ms var(--ease-out-quart) both;
 }
+
+/* ============================================================
+   性能优化：CSS Containment
+   ============================================================ */
+
+/* 日历格子 — 布局和样式隔离，减少重绘范围 */
+[role="gridcell"] {
+  contain: layout style;
+}
+
+/* 统计卡和快速管理 — 内容隔离 */
+.stats-enter {
+  contain: layout style;
+}

@@ -1,15 +1,19 @@
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted, watch, nextTick, inject, defineAsyncComponent } from 'vue'
+import { ElMessage, ElConfigProvider } from 'element-plus'
 import dayjs from 'dayjs'
+
+const elLocale = inject('elLocale')
 import CalendarGrid from './components/CalendarGrid.vue'
-import DayDetail from './components/DayDetail.vue'
 import FilterBar from './components/FilterBar.vue'
-import AnnotationForm from './components/AnnotationForm.vue'
-import EventForm from './components/EventForm.vue'
-import SettingsPanel from './components/SettingsPanel.vue'
 import StatsCard from './components/StatsCard.vue'
-import QuickManage from './components/QuickManage.vue'
+
+// 懒加载：非首屏关键组件
+const DayDetail = defineAsyncComponent(() => import('./components/DayDetail.vue'))
+const AnnotationForm = defineAsyncComponent(() => import('./components/AnnotationForm.vue'))
+const EventForm = defineAsyncComponent(() => import('./components/EventForm.vue'))
+const SettingsPanel = defineAsyncComponent(() => import('./components/SettingsPanel.vue'))
+const QuickManage = defineAsyncComponent(() => import('./components/QuickManage.vue'))
 import {
   fetchCalendar, fetchGames, fetchOwnerNames,
   updateAnnotation,
@@ -156,14 +160,16 @@ const statsSourceData = computed(() => {
 // ==================== 月度统计 ====================
 function buildStats(items) {
   const total = items.length
-  const newsCount = items.filter(i => i.source === 'news').length
-  const eventCount = items.filter(i => i.source === 'event').length
   const priority = { 3: 0, 2: 0, 1: 0, 0: 0 }
   const gameCount = {}
   const ownerCount = {}
+  let newsCount = 0
+  let eventCount = 0
   let configuredCount = 0
   let unconfiguredCount = 0
   for (const item of items) {
+    if (item.source === 'news') newsCount++
+    else eventCount++
     priority[item.priority] = (priority[item.priority] || 0) + 1
     gameCount[item.game] = (gameCount[item.game] || 0) + 1
     if (item.resource_ready) configuredCount++
@@ -245,7 +251,7 @@ async function loadOwnerNames() {
 }
 
 watch([currentYear, currentMonth], loadData)
-onMounted(() => { loadGames(); loadOwnerNames(); loadData() })
+onMounted(() => { Promise.all([loadGames(), loadOwnerNames(), loadData()]) })
 
 // ==================== 日期详情侧栏 ====================
 const detailVisible = ref(false)
@@ -470,10 +476,11 @@ const statsExpanded = ref(true)
 </script>
 
 <template>
+  <ElConfigProvider :locale="elLocale">
   <main class="max-w-7xl mx-auto px-4 md:px-6 pt-6 md:pt-8 pb-12">
     <!-- 顶部标题区 -->
     <div class="flex items-center justify-between mb-6 md:mb-8">
-      <img src="./assets/banner_title.png" alt="START 游戏日历" class="h-auto max-h-6 md:max-h-11" style="width: auto; display: block" />
+      <img src="./assets/banner_title.png" alt="START 游戏日历" class="h-auto max-h-6 md:max-h-11" style="width: auto; display: block" fetchpriority="high" width="300" height="44" />
       <div class="flex gap-2">
         <el-button type="primary" @click="onNewEvent">
           <el-icon class="md:mr-1"><Plus /></el-icon>
@@ -631,4 +638,5 @@ const statsExpanded = ref(true)
       @restore-item="onRestoreItem"
     />
   </main>
+  </ElConfigProvider>
 </template>

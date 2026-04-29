@@ -120,9 +120,19 @@ function formatDatePill(dateStr) {
   return `${d.getMonth() + 1}/${d.getDate()} ${weekdays[d.getDay()]}`
 }
 
-// 当前日期事件数
+// 预计算每个日期的事件数，避免在 pill 渲染中重复 filter
+const dateCountMap = computed(() => {
+  const map = {}
+  for (const item of props.items) {
+    if (!item.hidden) {
+      map[item.item_date] = (map[item.item_date] || 0) + 1
+    }
+  }
+  return map
+})
+
 function getDateCount(dateStr) {
-  return props.items.filter(i => i.item_date === dateStr && !i.hidden).length
+  return dateCountMap.value[dateStr] || 0
 }
 
 function onPriorityChange(item, newPriority) {
@@ -194,7 +204,7 @@ function onContentTouchEnd(e) {
       <div class="flex items-center gap-2">
         <span style="font-weight: 600; font-size: 0.9375rem; color: #111">快速管理</span>
         <span v-if="!expanded" style="font-size: 0.8125rem; color: #999; font-variant-numeric: tabular-nums">
-          {{ availableDates.length }} 天 · {{ items.filter(i => !i.hidden).length }} 条
+          {{ availableDates.length }} 天 · {{ Object.values(dateCountMap).reduce((a, b) => a + b, 0) }} 条
         </span>
       </div>
       <button
