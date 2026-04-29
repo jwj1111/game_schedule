@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
@@ -38,6 +38,10 @@ function closePanel() {
   document.body.style.overflow = ''
 }
 
+onUnmounted(() => {
+  if (visible.value) document.body.style.overflow = ''
+})
+
 function confirm() {
   emit('update:modelValue', [...tempSelected.value])
   closePanel()
@@ -70,7 +74,7 @@ function isChecked(option) {
   <div class="inline-flex items-center w-full">
     <!-- 触发按钮 -->
     <button class="sheet-trigger" @click="open">
-      <span :style="{ color: displayText ? '#555' : '#ccc' }">
+      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0" :style="{ color: displayText ? '#555' : '#ccc' }">
         {{ displayText || placeholder }}
       </span>
       <svg width="10" height="10" viewBox="0 0 10 10" style="margin-left: auto; opacity: 0.3; flex-shrink: 0">

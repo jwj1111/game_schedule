@@ -169,13 +169,13 @@ watch(() => props.stats, () => {
         <template v-if="stats.gameDist.length">
           <div v-for="([game, count], idx) in stats.gameDist" :key="game" style="margin-bottom: 8px">
             <div class="flex items-center justify-between" style="margin-bottom: 3px">
-              <span style="font-size: 0.6875rem; color: #555">{{ game }}</span>
+              <span style="font-size: 0.6875rem; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1">{{ game }}</span>
               <span style="font-size: 0.6875rem; color: #999; font-variant-numeric: tabular-nums">{{ count }}</span>
             </div>
             <div style="background: #f0f0f0; border-radius: 3px; height: 6px; overflow: hidden">
               <div
                 style="height: 100%; border-radius: 3px; transition: width 150ms ease"
-                :style="{ width: (count / stats.total * 100) + '%', backgroundColor: getBarColor(idx) }"
+                :style="{ width: stats.total ? (count / stats.total * 100) + '%' : '0%', backgroundColor: getBarColor(idx) }"
               ></div>
             </div>
           </div>
@@ -189,7 +189,7 @@ watch(() => props.stats, () => {
         <template v-if="stats.ownerDist.length">
           <div v-for="([owner, count], idx) in stats.ownerDist" :key="owner" style="margin-bottom: 8px">
             <div class="flex items-center justify-between" style="margin-bottom: 3px">
-              <span style="font-size: 0.6875rem; color: #555">{{ owner }}</span>
+              <span style="font-size: 0.6875rem; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1">{{ owner }}</span>
               <div class="flex items-center gap-2">
                 <span style="font-size: 0.6875rem; color: #999; font-variant-numeric: tabular-nums">{{ count }}</span>
                 <!-- 点赞 -->
@@ -226,7 +226,7 @@ watch(() => props.stats, () => {
             <div style="background: #f0f0f0; border-radius: 3px; height: 6px; overflow: hidden">
               <div
                 style="height: 100%; border-radius: 3px; transition: width 150ms ease"
-                :style="{ width: (count / stats.total * 100) + '%', backgroundColor: getBarColor(idx) }"
+                :style="{ width: stats.total ? (count / stats.total * 100) + '%' : '0%', backgroundColor: getBarColor(idx) }"
               ></div>
             </div>
           </div>

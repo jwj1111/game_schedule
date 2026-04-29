@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -69,6 +69,10 @@ function closePanel() {
   visible.value = false
   document.body.style.overflow = ''
 }
+
+onUnmounted(() => {
+  if (visible.value) document.body.style.overflow = ''
+})
 
 function confirm() {
   const y = selectedYear.value

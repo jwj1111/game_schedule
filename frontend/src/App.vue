@@ -128,7 +128,7 @@ watch(dateRange, async (val) => {
         owners: filterOwners.value || undefined,
         keyword: filterKeyword.value || undefined,
       })
-      rangeData.value = res.items
+      rangeData.value = res.items || []
     } catch (e) {
       console.error('加载范围数据失败:', e)
       rangeData.value = null
@@ -217,9 +217,10 @@ async function loadData() {
       owners: filterOwners.value || undefined,
       keyword: filterKeyword.value || undefined,
     })
-    calendarData.value = res.items
+    calendarData.value = res.items || []
   } catch (e) {
     console.error('加载日历数据失败:', e)
+    ElMessage.error('加载数据失败，请刷新重试')
   } finally {
     loading.value = false
   }
@@ -228,7 +229,7 @@ async function loadData() {
 async function loadGames() {
   try {
     const res = await fetchGames()
-    gameOptions.value = res.games
+    gameOptions.value = res.games || []
   } catch (e) {
     console.error('加载游戏列表失败:', e)
   }
@@ -237,7 +238,7 @@ async function loadGames() {
 async function loadOwnerNames() {
   try {
     const res = await fetchOwnerNames()
-    ownerOptions.value = res.owners
+    ownerOptions.value = res.owners || []
   } catch (e) {
     console.error('加载负责人列表失败:', e)
   }
