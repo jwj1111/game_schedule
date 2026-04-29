@@ -6,7 +6,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'edit-annotation', 'hide-news', 'restore-news',
+  'edit-annotation', 'hide-news',
   'edit-event', 'delete-event', 'add-event',
   'quick-priority', 'quick-resource',
 ])

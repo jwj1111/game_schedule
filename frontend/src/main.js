@@ -7,7 +7,6 @@ import App from './App.vue'
 
 import {
   Plus, Setting, ArrowLeft, ArrowRight,
-  CircleCheckFilled, Hide, CircleCheck,
 } from '@element-plus/icons-vue'
 
 // ===== 在 Element Plus 初始化前，覆盖根源变量 =====
@@ -43,7 +42,7 @@ for (const [key, val] of Object.entries(vars)) {
 const app = createApp(App)
 app.use(ElementPlus, { locale: zhCn })
 
-const icons = { Plus, Setting, ArrowLeft, ArrowRight, CircleCheckFilled, Hide, CircleCheck }
+const icons = { Plus, Setting, ArrowLeft, ArrowRight }
 for (const [key, component] of Object.entries(icons)) {
   app.component(key, component)
 }

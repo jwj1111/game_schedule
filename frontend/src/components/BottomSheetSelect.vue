@@ -269,7 +269,7 @@ function isChecked(option) {
 
 .sheet-item-label {
   font-size: 14px;
-  color: #333;
+  color: #555;
 }
 .sheet-item.checked .sheet-item-label {
   color: #111;

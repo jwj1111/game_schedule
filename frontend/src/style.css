@@ -178,11 +178,6 @@ body {
 .el-loading-spinner .circular .path { stroke: #111 !important; }
 .el-loading-spinner .el-loading-text { color: #555 !important; }
 
-/* --- 全局：防止 drawer/dialog 打开时页面抖动 --- */
-html {
-  scrollbar-gutter: stable;
-}
-
 /* --- Dialog / Drawer --- */
 .el-dialog__title, .el-drawer__title { color: #111 !important; font-weight: 600 !important; font-size: 15px !important; }
 .el-dialog__headerbtn:hover .el-dialog__close,

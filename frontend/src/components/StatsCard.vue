@@ -54,7 +54,7 @@ function onLike(owner) {
 
   o.count++
 
-  // 首次点击启动固定 3 秒计时，后续点击不重置
+  // 首次点击启动固定 5 秒计时，后续点击不重置
   if (!o.timer) {
     o.timer = setTimeout(() => {
       o.locked = true
