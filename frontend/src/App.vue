@@ -7,13 +7,13 @@ const elLocale = inject('elLocale')
 import CalendarGrid from './components/CalendarGrid.vue'
 import FilterBar from './components/FilterBar.vue'
 import StatsCard from './components/StatsCard.vue'
+import QuickManage from './components/QuickManage.vue'
 
-// 懒加载：非首屏关键组件
+// 懒加载：非首屏关键组件（弹窗/侧栏，用户交互后才需要）
 const DayDetail = defineAsyncComponent(() => import('./components/DayDetail.vue'))
 const AnnotationForm = defineAsyncComponent(() => import('./components/AnnotationForm.vue'))
 const EventForm = defineAsyncComponent(() => import('./components/EventForm.vue'))
 const SettingsPanel = defineAsyncComponent(() => import('./components/SettingsPanel.vue'))
-const QuickManage = defineAsyncComponent(() => import('./components/QuickManage.vue'))
 import {
   fetchCalendar, fetchGames, fetchOwnerNames,
   updateAnnotation,
