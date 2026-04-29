@@ -1,5 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
+import DateWheelPicker from './DateWheelPicker.vue'
+import BottomSheetSelect from './BottomSheetSelect.vue'
 
 const props = defineProps({
   gameOptions: { type: Array, default: () => [] },
@@ -16,6 +18,48 @@ const selectedResource = ref(null)
 const keyword = ref('')
 const mobileExpanded = ref(false)
 
+// 日期范围
+const dateRange = ref(null)
+const _dateStart = ref('')
+const _dateEnd = ref('')
+
+const dateStart = computed({
+  get: () => _dateStart.value,
+  set: (val) => {
+    _dateStart.value = val || ''
+    const e = _dateEnd.value
+    if (val && e) {
+      dateRange.value = val <= e ? [val, e] : [e, val]
+    } else if (!val && !e) {
+      dateRange.value = null
+    }
+  },
+})
+
+const dateEnd = computed({
+  get: () => _dateEnd.value,
+  set: (val) => {
+    _dateEnd.value = val || ''
+    const s = _dateStart.value
+    if (s && val) {
+      dateRange.value = s <= val ? [s, val] : [val, s]
+    } else if (!s && !val) {
+      dateRange.value = null
+    }
+  },
+})
+
+watch(dateRange, (val) => {
+  if (val && val.length === 2) {
+    _dateStart.value = val[0]
+    _dateEnd.value = val[1]
+  } else if (!val) {
+    _dateStart.value = ''
+    _dateEnd.value = ''
+  }
+  emitChange()
+})
+
 let debounceTimer = null
 
 function emitChange() {
@@ -26,6 +70,7 @@ function emitChange() {
     priority: selectedPriorities.value.length ? selectedPriorities.value : null,
     resource: selectedResource.value,
     keyword: keyword.value.trim(),
+    dateRange: dateRange.value,
   })
 }
 
@@ -54,7 +99,8 @@ function toggleResource(val) {
 const hasFilter = computed(() =>
   selectedGames.value.length || selectedOwners.value.length ||
   selectedPriorities.value.length || selectedSource.value !== null ||
-  selectedResource.value !== null || keyword.value.trim()
+  selectedResource.value !== null || keyword.value.trim() ||
+  dateRange.value !== null
 )
 
 function clearAll() {
@@ -64,6 +110,7 @@ function clearAll() {
   selectedSource.value = null
   selectedResource.value = null
   keyword.value = ''
+  dateRange.value = null
   emitChange()
 }
 
@@ -101,28 +148,24 @@ const priorityButtons = [
       <!-- 游戏 -->
       <div class="flex items-center gap-2">
         <span style="font-size: 11px; color: #999; white-space: nowrap; width: 42px">游戏</span>
-        <el-select
+        <BottomSheetSelect
           v-model="selectedGames"
-          multiple collapse-tags collapse-tags-tooltip
-          placeholder="全部游戏" clearable size="small"
+          :options="gameOptions"
+          placeholder="全部游戏"
+          title="选择游戏"
           class="flex-1"
-          aria-label="游戏筛选"
-        >
-          <el-option v-for="g in gameOptions" :key="g" :label="g" :value="g" />
-        </el-select>
+        />
       </div>
       <!-- 负责人 -->
       <div class="flex items-center gap-2">
         <span style="font-size: 11px; color: #999; white-space: nowrap; width: 42px">负责人</span>
-        <el-select
+        <BottomSheetSelect
           v-model="selectedOwners"
-          multiple collapse-tags collapse-tags-tooltip
-          placeholder="全部负责人" clearable size="small"
+          :options="ownerOptions"
+          placeholder="全部负责人"
+          title="选择负责人"
           class="flex-1"
-          aria-label="负责人筛选"
-        >
-          <el-option v-for="o in ownerOptions" :key="o" :label="o" :value="o" />
-        </el-select>
+        />
       </div>
       <!-- 优先级 -->
       <div class="flex items-center gap-1.5">
@@ -169,6 +212,13 @@ const priorityButtons = [
           >未配置</button>
         </div>
       </div>
+      <!-- 日期范围 -->
+      <div class="flex items-center gap-1.5">
+        <span style="font-size: 11px; color: #999; white-space: nowrap; width: 42px">日期</span>
+        <DateWheelPicker v-model="dateStart" placeholder="开始" class="flex-1" />
+        <span style="font-size: 0.75rem; color: #999">至</span>
+        <DateWheelPicker v-model="dateEnd" placeholder="结束" class="flex-1" />
+      </div>
     </div>
 
     <!-- PC：始终显示 -->
@@ -179,7 +229,7 @@ const priorityButtons = [
           <span style="font-size: 11px; color: #999; white-space: nowrap">游戏</span>
           <el-select
             v-model="selectedGames"
-            multiple collapse-tags collapse-tags-tooltip
+            multiple collapse-tags collapse-tags-tooltip filterable
             placeholder="全部游戏" clearable size="small"
             style="width: 180px"
             aria-label="游戏筛选"
@@ -191,7 +241,7 @@ const priorityButtons = [
           <span style="font-size: 11px; color: #999; white-space: nowrap">负责人</span>
           <el-select
             v-model="selectedOwners"
-            multiple collapse-tags collapse-tags-tooltip
+            multiple collapse-tags collapse-tags-tooltip filterable
             placeholder="全部负责人" clearable size="small"
             style="width: 160px"
             aria-label="负责人筛选"
@@ -264,6 +314,21 @@ const priorityButtons = [
         @mouseenter="$event.target.style.color='#111'"
         @mouseleave="$event.target.style.color='#999'"
       >清除</span>
+    </div>
+
+    <!-- PC 日期范围：独立一行 -->
+    <div class="hidden md:flex mt-2">
+      <el-date-picker
+        v-model="dateRange"
+        type="daterange"
+        size="small"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        value-format="YYYY-MM-DD"
+        clearable
+        style="max-width: 260px"
+      />
     </div>
 
     <!-- PC 搜索框：独立一行 -->

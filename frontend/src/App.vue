@@ -59,47 +59,6 @@ function goToday() {
 // ==================== 日期范围筛选 ====================
 const dateRange = ref(null)
 
-// 移动端：两个独立日期，内部暂存
-const _dateStart = ref('')
-const _dateEnd = ref('')
-
-const dateStart = computed({
-  get: () => _dateStart.value,
-  set: (val) => {
-    _dateStart.value = val || ''
-    const e = _dateEnd.value
-    if (val && e) {
-      dateRange.value = val <= e ? [val, e] : [e, val]
-    } else if (!val && !e) {
-      dateRange.value = null
-    }
-  },
-})
-
-const dateEnd = computed({
-  get: () => _dateEnd.value,
-  set: (val) => {
-    _dateEnd.value = val || ''
-    const s = _dateStart.value
-    if (s && val) {
-      dateRange.value = s <= val ? [s, val] : [val, s]
-    } else if (!s && !val) {
-      dateRange.value = null
-    }
-  },
-})
-
-// PC 端 daterange 变化时同步到移动端暂存
-watch(dateRange, (val) => {
-  if (val && val.length === 2) {
-    _dateStart.value = val[0]
-    _dateEnd.value = val[1]
-  } else if (!val) {
-    _dateStart.value = ''
-    _dateEnd.value = ''
-  }
-})
-
 // ==================== 日历网格 ====================
 const days = computed(() => generateMonthGrid(currentYear.value, currentMonth.value))
 
@@ -112,11 +71,12 @@ const filterGames = ref('')
 const filterOwners = ref('')
 const filterKeyword = ref('')
 
-function onFilterChange({ games, owners, source, priority, resource, keyword }) {
+function onFilterChange({ games, owners, source, priority, resource, keyword, dateRange: dr }) {
   // 前端筛选（不触发 API）
   filterSource.value = source
   filterPriority.value = priority
   filterResource.value = resource
+  dateRange.value = dr || null
 
   // 后端筛选（只有值真正变化时才触发 API）
   const gamesChanged = filterGames.value !== games
@@ -514,61 +474,23 @@ const statsView = ref('all') // 'all' | 'key'
       </div>
     </div>
 
-    <!-- 月份导航 -->
-    <div class="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 mb-3">
-      <div class="flex items-center gap-2 md:gap-3">
-        <el-button size="small" :disabled="!canPrev" @click="prevMonth">
-          <el-icon><ArrowLeft /></el-icon>
-        </el-button>
-        <span class="text-sm md:text-base" style="font-weight: 600; color: #111; min-width: 100px; text-align: center; display: inline-block; font-variant-numeric: tabular-nums">
-          {{ monthLabel }}
-        </span>
-        <el-button size="small" :disabled="!canNext" @click="nextMonth">
-          <el-icon><ArrowRight /></el-icon>
-        </el-button>
-        <el-button size="small" type="primary" plain @click="goToday">今天</el-button>
-      </div>
-      <!-- PC：日期范围选择器 -->
-      <div class="hidden md:block">
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          size="small"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          clearable
-          style="max-width: 260px"
-        />
-      </div>
-      <!-- 移动端：两个独立日期选择器 -->
-      <div class="flex md:hidden items-center gap-1.5 w-full">
-        <el-date-picker
-          v-model="dateStart"
-          type="date"
-          size="small"
-          placeholder="开始"
-          value-format="YYYY-MM-DD"
-          clearable
-          class="flex-1"
-        />
-        <span style="font-size: 0.75rem; color: #999">至</span>
-        <el-date-picker
-          v-model="dateEnd"
-          type="date"
-          size="small"
-          placeholder="结束"
-          value-format="YYYY-MM-DD"
-          clearable
-          class="flex-1"
-        />
-      </div>
+    <!-- 筛选栏 -->
+    <div class="mb-3">
+      <FilterBar :game-options="gameOptions" :owner-options="ownerOptions" @filter-change="onFilterChange" />
     </div>
 
-    <!-- 筛选栏 -->
-    <div class="mb-3 md:mb-4">
-      <FilterBar :game-options="gameOptions" :owner-options="ownerOptions" @filter-change="onFilterChange" />
+    <!-- 月份导航 -->
+    <div class="flex items-center justify-center md:justify-start gap-2 md:gap-3 mb-3 md:mb-4">
+      <el-button size="small" :disabled="!canPrev" @click="prevMonth">
+        <el-icon><ArrowLeft /></el-icon>
+      </el-button>
+      <span class="text-sm md:text-base" style="font-weight: 600; color: #111; min-width: 100px; text-align: center; display: inline-block; font-variant-numeric: tabular-nums">
+        {{ monthLabel }}
+      </span>
+      <el-button size="small" :disabled="!canNext" @click="nextMonth">
+        <el-icon><ArrowRight /></el-icon>
+      </el-button>
+      <el-button size="small" type="primary" plain @click="goToday">今天</el-button>
     </div>
 
     <!-- 日历网格 — 主体区域 -->

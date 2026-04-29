@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, reactive, watch } from 'vue'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -31,12 +31,44 @@ watch(() => props.stats.total, (newVal, oldVal) => {
   const start = performance.now()
   function step(now) {
     const t = Math.min((now - start) / duration, 1)
-    const ease = 1 - Math.pow(1 - t, 3) // ease-out-cubic
+    const ease = 1 - Math.pow(1 - t, 3)
     animatedTotal.value = Math.round(from + (to - from) * ease)
     if (t < 1) rafId = requestAnimationFrame(step)
   }
   rafId = requestAnimationFrame(step)
 }, { immediate: true })
+
+// ==================== 负责人点赞 ====================
+const likes = reactive({})  // { owner: { count, locked, timer } }
+
+function initOwner(owner) {
+  if (!likes[owner]) {
+    likes[owner] = { count: 0, locked: false, timer: null }
+  }
+}
+
+function onLike(owner) {
+  initOwner(owner)
+  const o = likes[owner]
+  if (o.locked) return
+
+  o.count++
+
+  // 首次点击启动固定 3 秒计时，后续点击不重置
+  if (!o.timer) {
+    o.timer = setTimeout(() => {
+      o.locked = true
+    }, 5000)
+  }
+}
+
+// 统计数据变化时重置所有点赞
+watch(() => props.stats, () => {
+  for (const key of Object.keys(likes)) {
+    if (likes[key].timer) clearTimeout(likes[key].timer)
+    delete likes[key]
+  }
+}, { deep: false })
 </script>
 
 <template>
@@ -158,7 +190,38 @@ watch(() => props.stats.total, (newVal, oldVal) => {
           <div v-for="([owner, count], idx) in stats.ownerDist" :key="owner" style="margin-bottom: 8px">
             <div class="flex items-center justify-between" style="margin-bottom: 3px">
               <span style="font-size: 0.6875rem; color: #555">{{ owner }}</span>
-              <span style="font-size: 0.6875rem; color: #999; font-variant-numeric: tabular-nums">{{ count }}</span>
+              <div class="flex items-center gap-2">
+                <span style="font-size: 0.6875rem; color: #999; font-variant-numeric: tabular-nums">{{ count }}</span>
+                <!-- 点赞 -->
+                <button
+                  v-if="!likes[owner]?.locked"
+                  class="pill-press"
+                  style="background: none; border: none; cursor: pointer; padding: 0 2px; line-height: 1; display: inline-flex; align-items: center; gap: 2px"
+                  @click="onLike(owner)"
+                  title="点赞"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 22V11L10.36 2.37C10.5 2.06 10.81 1.85 11.15 1.85H11.5C12.33 1.85 13 2.52 13 3.35V9H19.39C19.74 9 20.08 9.11 20.35 9.32C20.95 9.79 21.14 10.62 20.78 11.3L17.07 18.3C16.67 19.05 15.88 19.5 15.03 19.5H10C8.34 19.5 7 18.16 7 16.5V22ZM2 11H5V22H2V11Z"
+                      :fill="likes[owner]?.count ? '#34c759' : 'none'"
+                      :stroke="likes[owner]?.count ? '#34c759' : '#ccc'"
+                      stroke-width="1.5"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <span v-if="likes[owner]?.count" style="font-size: 0.625rem; color: #34c759; font-variant-numeric: tabular-nums">{{ likes[owner].count }}</span>
+                </button>
+                <span
+                  v-else
+                  style="display: inline-flex; align-items: center; gap: 2px; white-space: nowrap"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#34c759" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 22V11L10.36 2.37C10.5 2.06 10.81 1.85 11.15 1.85H11.5C12.33 1.85 13 2.52 13 3.35V9H19.39C19.74 9 20.08 9.11 20.35 9.32C20.95 9.79 21.14 10.62 20.78 11.3L17.07 18.3C16.67 19.05 15.88 19.5 15.03 19.5H10C8.34 19.5 7 18.16 7 16.5V22ZM2 11H5V22H2V11Z"
+                      fill="#34c759" stroke="#34c759" stroke-width="1.5" stroke-linejoin="round"
+                    />
+                  </svg>
+                  <span style="font-size: 0.625rem; color: #34c759; font-variant-numeric: tabular-nums">{{ likes[owner].count }}</span>
+                </span>
+              </div>
             </div>
             <div style="background: #f0f0f0; border-radius: 3px; height: 6px; overflow: hidden">
               <div

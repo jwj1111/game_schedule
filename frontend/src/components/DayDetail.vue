@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   date: { type: String, default: '' },
@@ -20,23 +20,80 @@ const priorityOptions = [
   { value: 0, label: '无', bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-300', activeBg: 'bg-gray-400' },
 ]
 
-const groupedGames = computed(() => {
-  const visible = props.items.filter(i => !i.hidden)
+// 构建排好序的分组快照
+function buildGroups(items) {
+  const visible = items.filter(i => !i.hidden)
   const map = {}
   for (const item of visible) {
     if (!map[item.game]) map[item.game] = []
     map[item.game].push(item)
   }
-  const groups = Object.entries(map).map(([game, items]) => ({
+  const groups = Object.entries(map).map(([game, gameItems]) => ({
     game,
-    items: items.sort((a, b) => b.priority - a.priority),
-    maxPriority: Math.max(...items.map(i => i.priority)),
+    // 存储 item 的引用 id，保持顺序
+    itemIds: gameItems.sort((a, b) => b.priority - a.priority).map(i => `${i.source}-${i.id}`),
+    maxPriority: Math.max(...gameItems.map(i => i.priority)),
   }))
   groups.sort((a, b) => b.maxPriority - a.maxPriority)
   return groups
+}
+
+// 缓存的分组顺序（只在打开时计算）
+const cachedOrder = ref([])
+const groupedGames = ref([])
+const hiddenItems = ref([])
+
+// drawer 打开时：重新排序
+watch(() => props.visible, (val) => {
+  if (val) {
+    cachedOrder.value = buildGroups(props.items)
+    syncItems()
+  }
 })
 
-const hiddenItems = computed(() => props.items.filter(i => i.hidden))
+// items 变化时（就地更新）：按缓存顺序填充最新数据，不重排
+watch(() => props.items, () => {
+  if (props.visible) {
+    syncItems()
+  }
+}, { deep: true })
+
+function syncItems() {
+  const itemMap = {}
+  for (const item of props.items) {
+    itemMap[`${item.source}-${item.id}`] = item
+  }
+
+  // 按缓存顺序构建，保持位置不变
+  const result = []
+  for (const group of cachedOrder.value) {
+    const items = group.itemIds
+      .map(id => itemMap[id])
+      .filter(i => i && !i.hidden)
+    if (items.length) {
+      result.push({ game: group.game, items })
+    }
+  }
+
+  // 处理新增的事项（不在缓存中的）
+  const knownIds = new Set(cachedOrder.value.flatMap(g => g.itemIds))
+  const newItems = props.items.filter(i => !i.hidden && !knownIds.has(`${i.source}-${i.id}`))
+  if (newItems.length) {
+    for (const item of newItems) {
+      const existing = result.find(g => g.game === item.game)
+      if (existing) {
+        existing.items.push(item)
+      } else {
+        result.push({ game: item.game, items: [item] })
+      }
+    }
+    // 更新缓存，把新 id 加进去
+    cachedOrder.value = buildGroups(props.items)
+  }
+
+  groupedGames.value = result
+  hiddenItems.value = props.items.filter(i => i.hidden)
+}
 
 function onPriorityChange(item, newPriority) {
   emit('quick-priority', { item, priority: newPriority })
