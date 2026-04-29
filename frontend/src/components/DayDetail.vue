@@ -62,7 +62,6 @@ function onResourceToggle(item) {
     </div>
 
     <div v-if="groupedGames.length === 0 && hiddenItems.length === 0" style="text-align: center; padding: 48px 0">
-      <div style="font-size: 1.5rem; margin-bottom: 8px">📋</div>
       <div style="color: #999; margin-bottom: 4px; font-size: 0.8125rem">当天没有排期</div>
       <div style="color: #ccc; margin-bottom: 16px; font-size: 0.75rem">清闲的一天，或者安排点什么？</div>
       <el-button size="small" @click="emit('add-event', date)">+ 添加事项</el-button>

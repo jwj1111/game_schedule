@@ -492,6 +492,9 @@ async function onAddGame({ game, owners }) {
 
 // ==================== 设置面板 ====================
 const settingsVisible = ref(false)
+
+// ==================== 统计切换 ====================
+const statsView = ref('all') // 'all' | 'key'
 </script>
 
 <template>
@@ -584,15 +587,31 @@ const settingsVisible = ref(false)
     </div>
 
     <!-- 事件统计 -->
-    <div class="mt-6 md:mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+    <div class="mt-6 md:mt-10">
       <div class="stats-enter p-4 md:py-5 md:px-6" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px">
+        <div class="flex items-center gap-1.5 mb-4">
+          <button
+            class="px-3 py-1 text-xs rounded-md border pill-press cursor-pointer"
+            :style="statsView === 'all'
+              ? { background: '#111', color: '#fff', borderColor: '#111' }
+              : { background: '#fff', color: '#999', borderColor: '#e5e5e5' }"
+            @click="statsView = 'all'"
+          >事件统计</button>
+          <button
+            class="px-3 py-1 text-xs rounded-md border pill-press cursor-pointer"
+            :style="statsView === 'key'
+              ? { background: '#111', color: '#fff', borderColor: '#111' }
+              : { background: '#fff', color: '#999', borderColor: '#e5e5e5' }"
+            @click="statsView = 'key'"
+          >重点事件</button>
+        </div>
         <StatsCard
+          v-if="statsView === 'all'"
           title="事件统计"
           :stats="allStats"
         />
-      </div>
-      <div class="stats-enter p-4 md:py-5 md:px-6" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px">
         <StatsCard
+          v-else
           title="重点事件"
           subtitle="仅高/中/低优先级"
           :stats="keyStats"
