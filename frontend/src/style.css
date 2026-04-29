@@ -151,6 +151,19 @@ body {
   }
 }
 
+/* --- PC 日期范围选择器紧凑模式 --- */
+.pc-daterange .el-range-input {
+  font-size: 11px !important;
+}
+.pc-daterange .el-range-separator {
+  font-size: 11px !important;
+  padding: 0 2px !important;
+}
+.pc-daterange .el-range__icon,
+.pc-daterange .el-range__close-icon {
+  font-size: 12px !important;
+}
+
 /* --- Tag --- */
 .el-tag { --el-tag-bg-color: #f5f5f5; --el-tag-border-color: #e5e5e5; --el-tag-text-color: #555; }
 .el-tag--info { --el-tag-bg-color: #f5f5f5; --el-tag-border-color: #e5e5e5; --el-tag-text-color: #555; }
@@ -159,6 +172,11 @@ body {
 /* --- Loading --- */
 .el-loading-spinner .circular .path { stroke: #111 !important; }
 .el-loading-spinner .el-loading-text { color: #555 !important; }
+
+/* --- 全局：防止 drawer/dialog 打开时页面抖动 --- */
+html {
+  scrollbar-gutter: stable;
+}
 
 /* --- Dialog / Drawer --- */
 .el-dialog__title, .el-drawer__title { color: #111 !important; font-weight: 600 !important; font-size: 15px !important; }
@@ -169,6 +187,8 @@ body {
 
 /* --- Popconfirm --- */
 .el-popconfirm__action .el-button--primary { background-color: #111 !important; border-color: #111 !important; }
+.el-popconfirm__icon { display: none !important; }
+.el-popconfirm__main { font-size: 13px !important; }
 
 /* --- Message --- */
 .el-message--success .el-message__content { color: #111 !important; }

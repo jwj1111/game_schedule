@@ -133,6 +133,23 @@ watch(() => props.visible, (val) => {
     else loadHidden()
   }
 })
+
+// ==================== 移动端右滑关闭 ====================
+let touchStartX = 0
+let touchStartY = 0
+
+function onTouchStart(e) {
+  touchStartX = e.touches[0].clientX
+  touchStartY = e.touches[0].clientY
+}
+
+function onTouchEnd(e) {
+  const dx = e.changedTouches[0].clientX - touchStartX
+  const dy = Math.abs(e.changedTouches[0].clientY - touchStartY)
+  if (dx > 120 && dx > dy * 1.5) {
+    emit('close')
+  }
+}
 </script>
 
 <template>
@@ -144,6 +161,11 @@ watch(() => props.visible, (val) => {
     style="max-width: 500px"
     @close="emit('close')"
   >
+    <div
+      style="min-height: 100%"
+      @touchstart.passive="onTouchStart"
+      @touchend.passive="onTouchEnd"
+    >
     <el-tabs v-model="activeTab" @tab-change="onTabChange">
       <!-- Tab 1：负责人管理 -->
       <el-tab-pane label="游戏负责人" name="owners">
@@ -229,5 +251,6 @@ watch(() => props.visible, (val) => {
         </div>
       </el-tab-pane>
     </el-tabs>
+    </div>
   </el-drawer>
 </template>

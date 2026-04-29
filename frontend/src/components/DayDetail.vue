@@ -101,6 +101,23 @@ function onPriorityChange(item, newPriority) {
 function onResourceToggle(item) {
   emit('quick-resource', { item, resource_ready: !item.resource_ready })
 }
+// ==================== 移动端右滑关闭 ====================
+let touchStartX = 0
+let touchStartY = 0
+
+function onTouchStart(e) {
+  touchStartX = e.touches[0].clientX
+  touchStartY = e.touches[0].clientY
+}
+
+function onTouchEnd(e) {
+  const dx = e.changedTouches[0].clientX - touchStartX
+  const dy = Math.abs(e.changedTouches[0].clientY - touchStartY)
+  // 右滑超过 80px 且水平距离大于垂直距离（防误触）
+  if (dx > 120 && dx > dy * 1.5) {
+    emit('close')
+  }
+}
 </script>
 
 <template>
@@ -112,6 +129,11 @@ function onResourceToggle(item) {
     style="max-width: 440px"
     @close="emit('close')"
   >
+    <div
+      style="min-height: 100%"
+      @touchstart.passive="onTouchStart"
+      @touchend.passive="onTouchEnd"
+    >
     <div v-if="groupedGames.length > 0 || hiddenItems.length > 0" style="margin-bottom: 16px">
       <el-button size="small" @click="emit('add-event', date)">
         + 添加事项
@@ -189,15 +211,11 @@ function onResourceToggle(item) {
             <div class="flex gap-1">
               <template v-if="item.source === 'news'">
                 <el-button size="small" text @click="emit('edit-annotation', item)">编辑备注</el-button>
-                <el-popconfirm title="确认隐藏？可随时恢复" @confirm="emit('hide-news', item)">
-                  <template #reference>
-                    <el-button size="small" text>隐藏</el-button>
-                  </template>
-                </el-popconfirm>
+                <el-button size="small" text @click="emit('hide-news', item)">隐藏</el-button>
               </template>
               <template v-else>
                 <el-button size="small" text @click="emit('edit-event', item)">编辑</el-button>
-                <el-popconfirm title="删除后无法恢复，确认删除？" @confirm="emit('delete-event', item)">
+                <el-popconfirm title="确认删除？不可恢复" :icon="null" hide-icon width="180" placement="top" teleported @confirm="emit('delete-event', item)">
                   <template #reference>
                     <el-button size="small" text style="color: #ef4444">删除</el-button>
                   </template>
@@ -225,6 +243,7 @@ function onResourceToggle(item) {
           <el-button size="small" text @click="emit('restore-news', item)">恢复</el-button>
         </div>
       </div>
+    </div>
     </div>
   </el-drawer>
 </template>

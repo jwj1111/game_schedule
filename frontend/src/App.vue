@@ -455,12 +455,13 @@ const settingsVisible = ref(false)
 
 // ==================== 统计切换 ====================
 const statsView = ref('all') // 'all' | 'key'
+const statsExpanded = ref(true)
 </script>
 
 <template>
   <main class="max-w-7xl mx-auto px-4 md:px-6 pt-6 md:pt-8 pb-12">
     <!-- 顶部标题区 -->
-    <div class="flex items-center justify-between pb-5 md:pb-6 mb-5 md:mb-6" style="border-bottom: 1px solid #e5e5e5">
+    <div class="flex items-center justify-between mb-6 md:mb-8">
       <img src="./assets/banner_title.png" alt="START 游戏日历" class="h-auto max-h-6 md:max-h-11" style="width: auto; display: block" />
       <div class="flex gap-2">
         <el-button type="primary" @click="onNewEvent">
@@ -475,7 +476,7 @@ const statsView = ref('all') // 'all' | 'key'
     </div>
 
     <!-- 筛选栏 -->
-    <div class="mb-3">
+    <div class="mb-6 md:mb-8 p-3 md:p-4" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px">
       <FilterBar :game-options="gameOptions" :owner-options="ownerOptions" @filter-change="onFilterChange" />
     </div>
 
@@ -511,33 +512,53 @@ const statsView = ref('all') // 'all' | 'key'
     <!-- 事件统计 -->
     <div class="mt-6 md:mt-10">
       <div class="stats-enter p-4 md:py-5 md:px-6" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px">
-        <div class="flex items-center gap-1.5 mb-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <button
+              class="px-3 py-1 text-xs rounded-md border pill-press cursor-pointer"
+              :style="statsView === 'all'
+                ? { background: '#111', color: '#fff', borderColor: '#111' }
+                : { background: '#fff', color: '#999', borderColor: '#e5e5e5' }"
+              @click="statsView = 'all'"
+            >全部事件</button>
+            <button
+              class="px-3 py-1 text-xs rounded-md border pill-press cursor-pointer"
+              :style="statsView === 'key'
+                ? { background: '#111', color: '#fff', borderColor: '#111' }
+                : { background: '#fff', color: '#999', borderColor: '#e5e5e5' }"
+              @click="statsView = 'key'"
+            >重点事件</button>
+            <!-- 收缩时显示总条数 -->
+            <span v-if="!statsExpanded" style="font-size: 0.8125rem; color: #999; margin-left: 8px; font-variant-numeric: tabular-nums">
+              {{ statsView === 'all' ? allStats.total : keyStats.total }} 条
+            </span>
+          </div>
+          <!-- 展开/收缩按钮 -->
           <button
-            class="px-3 py-1 text-xs rounded-md border pill-press cursor-pointer"
-            :style="statsView === 'all'
-              ? { background: '#111', color: '#fff', borderColor: '#111' }
-              : { background: '#fff', color: '#999', borderColor: '#e5e5e5' }"
-            @click="statsView = 'all'"
-          >事件统计</button>
-          <button
-            class="px-3 py-1 text-xs rounded-md border pill-press cursor-pointer"
-            :style="statsView === 'key'
-              ? { background: '#111', color: '#fff', borderColor: '#111' }
-              : { background: '#fff', color: '#999', borderColor: '#e5e5e5' }"
-            @click="statsView = 'key'"
-          >重点事件</button>
+            class="pill-press cursor-pointer"
+            style="background: none; border: none; padding: 4px; color: #999; transition: transform 200ms"
+            :style="{ transform: statsExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }"
+            @click="statsExpanded = !statsExpanded"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
-        <StatsCard
-          v-if="statsView === 'all'"
-          title="事件统计"
-          :stats="allStats"
-        />
-        <StatsCard
-          v-else
-          title="重点事件"
-          subtitle="仅高/中/低优先级"
-          :stats="keyStats"
-        />
+        <!-- 展开时显示详细统计 -->
+        <div v-if="statsExpanded" style="margin-top: 16px">
+          <StatsCard
+            v-if="statsView === 'all'"
+            title="全部事件"
+            :stats="allStats"
+          />
+          <StatsCard
+            v-else
+            title="重点事件"
+            subtitle="仅高/中/低优先级"
+            :stats="keyStats"
+          />
+        </div>
       </div>
     </div>
 
