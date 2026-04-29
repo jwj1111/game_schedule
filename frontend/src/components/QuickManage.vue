@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
@@ -134,14 +134,56 @@ function onResourceToggle(item) {
 
 function scrollToDate(date) {
   selectedDate.value = date
+  scrollPillIntoView(date)
 }
 
 const pillsRef = ref(null)
+
+function scrollPillIntoView(date) {
+  nextTick(() => {
+    if (!pillsRef.value) return
+    const idx = availableDates.value.indexOf(date)
+    if (idx < 0) return
+    const pill = pillsRef.value.children[idx]
+    if (!pill) return
+    pill.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
+  })
+}
 
 function scrollPills(direction) {
   if (!pillsRef.value) return
   const scrollAmount = pillsRef.value.clientWidth * 0.7
   pillsRef.value.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' })
+}
+
+// 移动端左右滑动切换日期
+let contentTouchStartX = 0
+let contentTouchStartY = 0
+
+function onContentTouchStart(e) {
+  contentTouchStartX = e.touches[0].clientX
+  contentTouchStartY = e.touches[0].clientY
+}
+
+function onContentTouchEnd(e) {
+  const dx = e.changedTouches[0].clientX - contentTouchStartX
+  const dy = Math.abs(e.changedTouches[0].clientY - contentTouchStartY)
+  if (Math.abs(dx) < 80 || Math.abs(dx) < dy) return
+
+  const dates = availableDates.value
+  const idx = dates.indexOf(selectedDate.value)
+  if (idx < 0) return
+
+  let newDate = null
+  if (dx < 0 && idx < dates.length - 1) {
+    newDate = dates[idx + 1]
+  } else if (dx > 0 && idx > 0) {
+    newDate = dates[idx - 1]
+  }
+  if (newDate) {
+    selectedDate.value = newDate
+    scrollPillIntoView(newDate)
+  }
 }
 </script>
 
@@ -210,7 +252,11 @@ function scrollPills(direction) {
         </div>
 
         <!-- 事件列表 -->
-        <div style="margin-top: 16px">
+        <div
+          style="margin-top: 16px"
+          @touchstart.passive="onContentTouchStart"
+          @touchend.passive="onContentTouchEnd"
+        >
           <div v-for="group in groupedGames" :key="group.game" style="margin-bottom: 20px">
             <div style="font-size: 0.8125rem; font-weight: 600; color: #111; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; line-height: 1.3">
               {{ group.game }}

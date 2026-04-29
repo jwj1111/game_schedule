@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 /* ===== 全局基础样式 ===== */
+html {
+  scrollbar-gutter: stable;
+}
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -8,6 +11,8 @@ body {
   color: #555;
   font-size: 0.8125rem; /* 13px base */
   line-height: 1.5;
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
   font-kerning: normal;
   -webkit-font-smoothing: antialiased;
 }
