@@ -27,7 +27,7 @@ const sectionOptions = [
 const today = computed(() => dayjs().format('YYYY-MM-DD'))
 const sevenDaysLater = computed(() => dayjs().add(6, 'day').format('YYYY-MM-DD'))
 const fifteenDaysLater = computed(() => dayjs().add(14, 'day').format('YYYY-MM-DD'))
-const threeDaysAgo = computed(() => dayjs().subtract(3, 'day').format('YYYY-MM-DD'))
+const expiredStartDate = computed(() => dayjs().subtract(7, 'day').format('YYYY-MM-DD'))
 
 function isCreatedToday(item) {
   return String(item.created_at || '').slice(0, 10) === today.value
@@ -53,7 +53,7 @@ const dueWithin15Items = computed(() => props.items
 )
 
 const expiredItems = computed(() => props.items
-  .filter(item => isKeyUnconfigured(item) && item.item_date >= threeDaysAgo.value && item.item_date < today.value)
+  .filter(item => isKeyUnconfigured(item) && item.item_date >= expiredStartDate.value && item.item_date < today.value)
   .sort((a, b) => b.item_date.localeCompare(a.item_date) || b.priority - a.priority)
 )
 </script>
@@ -79,7 +79,7 @@ const expiredItems = computed(() => props.items
       <div class="overview-card-head">
         <p v-if="activeSection === 'latest'" class="overview-desc">当天入库的事项</p>
         <p v-else-if="activeSection === 'due'" class="overview-desc">15 天内未配置资源位的重点事项</p>
-        <p v-else class="overview-desc">过去 3 天内仍未配置的重点事项</p>
+        <p v-else class="overview-desc">过去 7 天内仍未配置的重点事项</p>
         <el-button class="overview-refresh-button" size="small" :loading="props.loading" aria-label="刷新" @click="emit('refresh')">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M13 7.25A5 5 0 1 0 11.55 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -136,7 +136,7 @@ const expiredItems = computed(() => props.items
       <div v-show="activeSection === 'expired'" class="overview-content">
         <OverviewItemGroups
           :items="expiredItems"
-          empty-text="过去 3 天暂无过期未配置事项"
+          empty-text="过去 7 天暂无过期未配置事项"
           :is-item-action-pending="isItemActionPending"
           @edit-annotation="emit('edit-annotation', $event)"
           @hide-news="emit('hide-news', $event)"

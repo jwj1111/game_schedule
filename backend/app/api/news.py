@@ -121,9 +121,9 @@ def calendar_query(
 
 @router.get("/overview", response_model=CalendarResponse)
 def overview_query(db: Session = Depends(get_db)):
-    """资讯速览数据：当天入库 + 未来 15 天 + 过去 3 天相关事项。"""
+    """资讯速览数据：当天入库 + 未来 15 天 + 过去 7 天相关事项。"""
     today = date.today()
-    range_start = today - timedelta(days=3)
+    range_start = today - timedelta(days=7)
     range_end = today + timedelta(days=15)
     created_start = datetime.combine(today, time.min)
     created_end = datetime.combine(today, time.max)
