@@ -51,6 +51,8 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `/` | GET | 健康检查 |
 | `/api/calendar` | GET | 统一查询（合并爬虫+标注+事件），按月加载 |
 | `/api/games` | GET | 所有游戏名（爬虫+事件+负责人三表去重） |
+| `/api/owner-names` | GET | 所有负责人姓名（去重，供筛选下拉框使用） |
+| `/api/hidden` | GET | 所有已隐藏的爬虫数据（用于恢复显示） |
 
 #### `/api/calendar` 参数
 
@@ -59,6 +61,7 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `start_date` | date | 是 | `2026-04-01` |
 | `end_date` | date | 是 | `2026-04-30` |
 | `games` | string | 否 | `DNF,LOL`（逗号分隔） |
+| `owners` | string | 否 | `张三,李四`（逗号分隔） |
 | `keyword` | string | 否 | `更新公告` |
 
 ### 标注
