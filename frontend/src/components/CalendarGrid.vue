@@ -7,6 +7,7 @@ const props = defineProps({
   dataByDate: { type: Object, default: () => ({}) },
   maxShow: { type: Number, default: 3 },
   selectedDate: { type: String, default: '' },
+  canEdit: { type: Boolean, default: false },
 })
 
 
@@ -126,6 +127,7 @@ function getPriorityClass(p) {
         @mouseenter="$event.currentTarget.style.backgroundColor = day.hoverBg"
         @mouseleave="$event.currentTarget.style.backgroundColor = day.defaultBg"
         role="gridcell"
+        :data-date="day.dateStr"
         :tabindex="day.isCurrentMonth ? 0 : -1"
         @click="emit('select-date', day.dateStr)"
         @keyup.enter="emit('select-date', day.dateStr)"
@@ -148,8 +150,9 @@ function getPriorityClass(p) {
           <button
             class="opacity-0 group-hover:opacity-100 transition-opacity hidden md:inline-block"
             style="font-size: 0.8125rem; color: #ccc; background: none; border: none; cursor: pointer; padding: 2px 4px; line-height: 1"
+            :disabled="!props.canEdit"
             aria-label="添加事项"
-            @click.stop="emit('add-event', day.dateStr)"
+            @click.stop="props.canEdit && emit('add-event', day.dateStr)"
             @mouseenter="$event.target.style.color='#555'"
             @mouseleave="$event.target.style.color='#ccc'"
           >+</button>

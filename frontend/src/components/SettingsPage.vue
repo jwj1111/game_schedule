@@ -6,6 +6,7 @@ import { message } from '../utils/message.js'
 
 const props = defineProps({
   active: { type: Boolean, default: false },
+  canEdit: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['restore-item'])
@@ -91,7 +92,19 @@ const editingTags = ref([])
 const editingInput = ref('')
 const currentEditSaving = computed(() => (editingGame.value ? isActionPending(`save-owner:${editingGame.value}`) : false))
 
+function isActionDisabled(key, includePermission = true) {
+  return (includePermission && !props.canEdit) || isActionPending(key)
+}
+
+function isCurrentEditDisabled() {
+  return !props.canEdit || currentEditSaving.value
+}
+
 function startEdit(row) {
+  if (!props.canEdit) {
+    ElMessage.warning('需要管理员权限')
+    return
+  }
   editingGame.value = row.game
   editingTags.value = [...row.owners]
   editingInput.value = ''
@@ -104,6 +117,7 @@ function cancelEdit() {
 }
 
 function addEditTag() {
+  if (!props.canEdit) return
   const name = editingInput.value.trim()
   if (name && !editingTags.value.includes(name)) {
     editingTags.value.push(name)
@@ -112,6 +126,7 @@ function addEditTag() {
 }
 
 function removeEditTag(tag) {
+  if (!props.canEdit) return
   editingTags.value = editingTags.value.filter(t => t !== tag)
 }
 
@@ -138,6 +153,10 @@ function onOwnerSuggestionSelect(option) {
 }
 
 async function saveEdit(row) {
+  if (!props.canEdit) {
+    ElMessage.warning('需要管理员权限')
+    return
+  }
   await runLockedAction(`save-owner:${row.game}`, async () => {
     try {
       if (row.exists) {
@@ -160,6 +179,11 @@ const loadingHidden = ref(false)
 const hiddenLoaded = ref(false)
 
 async function loadHidden(force = false) {
+  if (!props.canEdit) {
+    hiddenItems.value = []
+    hiddenLoaded.value = false
+    return
+  }
   if (loadingHidden.value || (hiddenLoaded.value && !force)) return
   loadingHidden.value = true
   try {
@@ -189,6 +213,10 @@ const hiddenByGame = computed(() => {
 })
 
 async function restoreItem(item) {
+  if (!props.canEdit) {
+    ElMessage.warning('需要管理员权限')
+    return
+  }
   await runLockedAction(`restore-hidden:${item.id}`, async () => {
     try {
       await updateAnnotation(item.id, { hidden: false })
@@ -212,6 +240,16 @@ watch(() => props.active, (active) => {
 
 watch(activeSection, () => {
   if (props.active) loadCurrentSection()
+})
+
+watch(() => props.canEdit, (canEdit) => {
+  if (!canEdit) {
+    cancelEdit()
+    hiddenItems.value = []
+    hiddenLoaded.value = false
+    return
+  }
+  if (props.active && activeSection.value === 'hidden') loadHidden(true)
 })
 </script>
 
@@ -283,7 +321,7 @@ watch(activeSection, () => {
                 <el-tag
                   v-for="tag in editingTags"
                   :key="tag"
-                  :closable="!currentEditSaving"
+                  :closable="!isCurrentEditDisabled()"
                   size="small"
                   @close="removeEditTag(tag)"
                 >
@@ -297,16 +335,16 @@ watch(activeSection, () => {
                   placeholder="输入或选择负责人"
                   :fetch-suggestions="queryOwnerSuggestions"
                   :trigger-on-focus="true"
-                  :disabled="currentEditSaving"
+                  :disabled="isCurrentEditDisabled()"
                   class="settings-owner-autocomplete"
                   @select="onOwnerSuggestionSelect"
                   @keyup.enter="addEditTag"
                 />
-                <el-button size="small" :disabled="currentEditSaving" @click="addEditTag">添加</el-button>
+                <el-button size="small" :disabled="isCurrentEditDisabled()" @click="addEditTag">添加</el-button>
               </div>
               <div class="settings-actions">
-                <el-button size="small" type="primary" :loading="currentEditSaving" :disabled="currentEditSaving" @click="saveEdit(row)">保存</el-button>
-                <el-button size="small" :disabled="currentEditSaving" @click="cancelEdit">取消</el-button>
+                <el-button size="small" type="primary" :loading="currentEditSaving" :disabled="isCurrentEditDisabled()" @click="saveEdit(row)">保存</el-button>
+                <el-button size="small" :disabled="isActionDisabled('cancel-owner', false)" @click="cancelEdit">取消</el-button>
               </div>
             </template>
 
@@ -318,7 +356,7 @@ watch(activeSection, () => {
             </template>
           </div>
 
-          <el-button v-if="editingGame !== row.game" size="small" text type="primary" @click="startEdit(row)">编辑</el-button>
+          <el-button v-if="editingGame !== row.game" size="small" text type="primary" :disabled="isActionDisabled('edit-owner')" @click="startEdit(row)">编辑</el-button>
         </div>
       </div>
 
@@ -383,7 +421,7 @@ watch(activeSection, () => {
                 type="primary"
                 text
                 :loading="isActionPending(`restore-hidden:${item.id}`)"
-                :disabled="isActionPending(`restore-hidden:${item.id}`)"
+                :disabled="isActionDisabled(`restore-hidden:${item.id}`)"
                 @click="restoreItem(item)"
               >
                 恢复显示
@@ -393,7 +431,8 @@ watch(activeSection, () => {
         </div>
       </div>
 
-      <div v-if="!hiddenByGame.length && !loadingHidden" class="settings-empty">暂无已隐藏事项</div>
+      <div v-if="!props.canEdit" class="settings-empty">管理员登录后可查看已隐藏事项</div>
+      <div v-else-if="!hiddenByGame.length && !loadingHidden" class="settings-empty">暂无已隐藏事项</div>
     </div>
   </section>
 </template>

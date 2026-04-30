@@ -10,6 +10,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from backend.app.auth import require_admin
 from backend.app.crud import create_event, delete_event, update_event
 from backend.app.database import get_db
 from backend.app.schemas import EventCreate, EventResponse, EventUpdate
@@ -18,14 +19,14 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 
 
 @router.post("", response_model=EventResponse, status_code=201)
-def add_event(body: EventCreate, db: Session = Depends(get_db)):
+def add_event(body: EventCreate, db: Session = Depends(get_db), _admin=Depends(require_admin)):
     """新建自定义事件。"""
     event = create_event(db, body.model_dump())
     return event
 
 
 @router.put("/{event_id}", response_model=EventResponse)
-def modify_event(event_id: int, body: EventUpdate, db: Session = Depends(get_db)):
+def modify_event(event_id: int, body: EventUpdate, db: Session = Depends(get_db), _admin=Depends(require_admin)):
     """修改自定义事件。"""
     event = update_event(db, event_id, body.model_dump(exclude_unset=True))
     if event is None:
@@ -34,7 +35,7 @@ def modify_event(event_id: int, body: EventUpdate, db: Session = Depends(get_db)
 
 
 @router.delete("/{event_id}", status_code=204)
-def remove_event(event_id: int, db: Session = Depends(get_db)):
+def remove_event(event_id: int, db: Session = Depends(get_db), _admin=Depends(require_admin)):
     """删除自定义事件（物理删除）。"""
     ok = delete_event(db, event_id)
     if not ok:

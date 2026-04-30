@@ -6,6 +6,7 @@ import OverviewItemGroups from './OverviewItemGroups.vue'
 const props = defineProps({
   items: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
+  canEdit: { type: Boolean, default: false },
   isItemActionPending: { type: Function, default: () => false },
 })
 
@@ -92,6 +93,7 @@ const expiredItems = computed(() => props.items
         <OverviewItemGroups
           :items="latestItems"
           empty-text="今天暂无新入库事项"
+          :can-edit="props.canEdit"
           :is-item-action-pending="isItemActionPending"
           @edit-annotation="emit('edit-annotation', $event)"
           @hide-news="emit('hide-news', $event)"
@@ -108,6 +110,7 @@ const expiredItems = computed(() => props.items
           <OverviewItemGroups
             :items="dueWithin7Items"
             empty-text="7 天内暂无临期事项"
+            :can-edit="props.canEdit"
             :is-item-action-pending="isItemActionPending"
             @edit-annotation="emit('edit-annotation', $event)"
             @hide-news="emit('hide-news', $event)"
@@ -122,6 +125,7 @@ const expiredItems = computed(() => props.items
           <OverviewItemGroups
             :items="dueWithin15Items"
             empty-text="8-15 天内暂无临期事项"
+            :can-edit="props.canEdit"
             :is-item-action-pending="isItemActionPending"
             @edit-annotation="emit('edit-annotation', $event)"
             @hide-news="emit('hide-news', $event)"
@@ -137,6 +141,7 @@ const expiredItems = computed(() => props.items
         <OverviewItemGroups
           :items="expiredItems"
           empty-text="过去 7 天暂无过期未配置事项"
+          :can-edit="props.canEdit"
           :is-item-action-pending="isItemActionPending"
           @edit-annotation="emit('edit-annotation', $event)"
           @hide-news="emit('hide-news', $event)"

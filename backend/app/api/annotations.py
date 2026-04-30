@@ -9,6 +9,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from backend.app.auth import require_admin
 from backend.app.crud import get_annotation, upsert_annotation
 from backend.app.database import get_db
 from backend.app.models import GameNews
@@ -31,7 +32,12 @@ def get_news_annotation(news_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{news_id}", response_model=AnnotationResponse)
-def update_news_annotation(news_id: int, body: AnnotationUpdate, db: Session = Depends(get_db)):
+def update_news_annotation(
+    news_id: int,
+    body: AnnotationUpdate,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
     """创建或更新标注（优先级/别名/资源位/隐藏）。"""
     if not db.query(GameNews.id).filter(GameNews.id == news_id).first():
         raise HTTPException(status_code=404, detail="爬虫数据不存在")

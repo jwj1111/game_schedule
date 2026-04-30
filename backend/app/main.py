@@ -18,6 +18,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.api.annotations import router as annotations_router
+from backend.app.api.auth import router as auth_router
 from backend.app.api.events import router as events_router
 from backend.app.api.news import router as news_router
 from backend.app.api.owners import router as owners_router
@@ -50,6 +51,7 @@ app.add_middleware(
 )
 
 # 挂载路由
+app.include_router(auth_router)
 app.include_router(news_router)
 app.include_router(annotations_router)
 app.include_router(events_router)

@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from backend.app.auth import require_admin
 from backend.app.database import get_db
 from backend.app.models import GameNews, GameOwner, UserAnnotation, UserEvent
 from backend.app.schemas import CalendarItem, CalendarResponse, GamesListResponse, HiddenListResponse
@@ -202,7 +203,7 @@ def list_owner_names(db: Session = Depends(get_db)):
 
 
 @router.get("/hidden", response_model=HiddenListResponse)
-def list_hidden(db: Session = Depends(get_db)):
+def list_hidden(db: Session = Depends(get_db), _admin=Depends(require_admin)):
     """返回所有被隐藏的爬虫数据（用于恢复显示）。"""
     rows = (
         db.query(GameNews, UserAnnotation)

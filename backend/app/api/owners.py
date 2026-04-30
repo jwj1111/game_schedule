@@ -13,6 +13,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from backend.app.auth import require_admin
 from backend.app.crud import create_owner, get_all_owners, get_owner_by_game, update_owner
 from backend.app.database import get_db
 from backend.app.schemas import OwnerCreate, OwnerResponse, OwnerUpdate
@@ -36,7 +37,7 @@ def get_game_owner(game: str, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=OwnerResponse, status_code=201)
-def add_owner(body: OwnerCreate, db: Session = Depends(get_db)):
+def add_owner(body: OwnerCreate, db: Session = Depends(get_db), _admin=Depends(require_admin)):
     """新增游戏负责人。"""
     existing = get_owner_by_game(db, body.game)
     if existing:
@@ -45,7 +46,7 @@ def add_owner(body: OwnerCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{game}", response_model=OwnerResponse)
-def modify_owner(game: str, body: OwnerUpdate, db: Session = Depends(get_db)):
+def modify_owner(game: str, body: OwnerUpdate, db: Session = Depends(get_db), _admin=Depends(require_admin)):
     """修改负责人列表。"""
     record = update_owner(db, game, body.owners)
     if record is None:

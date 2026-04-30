@@ -13,6 +13,8 @@ import QuickManage from './components/QuickManage.vue'
 import TopSegmentSwitch from './components/TopSegmentSwitch.vue'
 import SettingsPage from './components/SettingsPage.vue'
 import NewsOverview from './components/NewsOverview.vue'
+import AdminLoginDialog from './components/AdminLoginDialog.vue'
+import { useAuth } from './composables/useAuth.js'
 
 // 懒加载：非首屏关键组件（弹窗/侧栏，用户交互后才需要）
 const DayDetail = defineAsyncComponent(() => import('./components/DayDetail.vue'))
@@ -25,6 +27,17 @@ import {
   createOwner,
 } from './api/index.js'
 import { generateMonthGrid, groupByDate } from './utils/calendar.js'
+
+const {
+  isAdmin,
+  authLoading,
+  loginDialogVisible,
+  refreshAuthStatus,
+  login,
+  logout,
+  openLoginDialog,
+  requireAdminAction,
+} = useAuth()
 
 // ==================== 月份导航 ====================
 const currentYear = ref(dayjs().year())
@@ -463,7 +476,7 @@ watch(navigableDates, (dates) => {
   }
 })
 
-onMounted(() => { Promise.all([loadGames(), loadOwnerNames(), loadData()]) })
+onMounted(() => { Promise.all([refreshAuthStatus(), loadGames(), loadOwnerNames(), loadData()]) })
 
 // ==================== 日期详情侧栏 ====================
 const detailVisible = ref(false)
@@ -561,11 +574,13 @@ const annotationFormVisible = ref(false)
 const annotationTarget = ref(null)
 
 function onEditAnnotation(item) {
+  if (!requireAdminAction()) return
   annotationTarget.value = item
   annotationFormVisible.value = true
 }
 
 async function onSaveAnnotation(formData) {
+  if (!requireAdminAction()) return
   if (!annotationTarget.value) return
   await runLockedAction('annotation-save', async () => {
     try {
@@ -585,6 +600,7 @@ async function onSaveAnnotation(formData) {
 
 // ==================== 快捷操作：优先级 ====================
 async function onQuickPriority({ item, priority }) {
+  if (!requireAdminAction()) return
   await runLockedAction(getItemActionKey('priority', item), async () => {
     try {
       if (item.source === 'news') {
@@ -601,6 +617,7 @@ async function onQuickPriority({ item, priority }) {
 
 // ==================== 快捷操作：资源位 ====================
 async function onQuickResource({ item, resource_ready }) {
+  if (!requireAdminAction()) return
   await runLockedAction(getItemActionKey('resource', item), async () => {
     try {
       if (item.source === 'news') {
@@ -617,6 +634,7 @@ async function onQuickResource({ item, resource_ready }) {
 
 // ==================== 隐藏 / 恢复 ====================
 async function onHideNews(item) {
+  if (!requireAdminAction()) return
   await runLockedAction(getItemActionKey('hide', item), async () => {
     try {
       await updateAnnotation(item.id, { hidden: true })
@@ -629,6 +647,7 @@ async function onHideNews(item) {
 }
 
 async function onRestoreNews(item) {
+  if (!requireAdminAction()) return
   await runLockedAction(getItemActionKey('restore', item), async () => {
     try {
       await updateAnnotation(item.id, { hidden: false })
@@ -649,6 +668,7 @@ const eventFormVisible = ref(false)
 const eventTarget = ref(null)
 
 function onNewEvent() {
+  if (!requireAdminAction()) return
   eventTarget.value = null
   selectedDate.value = ''
   eventFormVisible.value = true
@@ -656,17 +676,20 @@ function onNewEvent() {
 
 // 从日历单元格或侧栏触发的添加事项（带日期）
 function onAddEventForDate(dateStr) {
+  if (!requireAdminAction()) return
   eventTarget.value = null
   selectedDate.value = dateStr
   eventFormVisible.value = true
 }
 
 function onEditEvent(item) {
+  if (!requireAdminAction()) return
   eventTarget.value = item
   eventFormVisible.value = true
 }
 
 async function onSaveEvent(formData) {
+  if (!requireAdminAction()) return
   await runLockedAction('event-save', async () => {
     try {
       if (formData.id) {
@@ -719,18 +742,15 @@ async function onSaveEvent(formData) {
 // 日期格脉冲高亮
 function pulseDate(dateStr) {
   nextTick(() => {
-    const cells = document.querySelectorAll('[role="gridcell"]')
-    for (const cell of cells) {
-      if (cell.textContent.trim().startsWith(String(parseInt(dateStr.split('-')[2])))) {
-        cell.classList.add('cell-pulse')
-        cell.addEventListener('animationend', () => cell.classList.remove('cell-pulse'), { once: true })
-        break
-      }
-    }
+    const cell = document.querySelector(`[role="gridcell"][data-date="${dateStr}"]`)
+    if (!cell) return
+    cell.classList.add('cell-pulse')
+    cell.addEventListener('animationend', () => cell.classList.remove('cell-pulse'), { once: true })
   })
 }
 
 async function onDeleteEvent(item) {
+  if (!requireAdminAction()) return
   await runLockedAction(getItemActionKey('delete', item), async () => {
     try {
       await apiDeleteEvent(item.id)
@@ -744,6 +764,7 @@ async function onDeleteEvent(item) {
 
 // ==================== 添加新游戏 ====================
 async function onAddGame({ game, owners }) {
+  if (!requireAdminAction()) return
   await runLockedAction('event-add-game', async () => {
     try {
       await createOwner({ game, owners: owners || [] })
@@ -760,6 +781,26 @@ async function onAddGame({ game, owners }) {
   })
 }
 
+// ==================== 管理员登录 ====================
+const logoutDialogVisible = ref(false)
+
+async function onAdminLogin(password) {
+  try {
+    await login(password)
+  } catch (e) {
+    ElMessage.error(e.message || '登录失败')
+  }
+}
+
+function onEnterAdminMode() {
+  if (!isAdmin.value) openLoginDialog()
+}
+
+async function onConfirmLogout() {
+  await logout()
+  logoutDialogVisible.value = false
+}
+
 // ==================== 统计切换 ====================
 const statsView = ref('all') // 'all' | 'key'
 const statsExpanded = ref(false)
@@ -769,13 +810,32 @@ const statsExpanded = ref(false)
   <ElConfigProvider :locale="elLocale">
   <main class="max-w-7xl mx-auto px-4 md:px-6 pt-6 md:pt-8 pb-12">
     <!-- 顶部标题区 -->
-    <div class="flex items-center justify-between mb-6 md:mb-8">
-      <img src="./assets/banner_title.png" alt="START 游戏日历" class="h-auto max-h-6 md:max-h-11" style="width: auto; display: block" fetchpriority="high" width="300" height="44" />
-      <div class="flex gap-2">
-        <el-button type="primary" @click="onNewEvent">
-          <el-icon class="md:mr-1"><Plus /></el-icon>
-          <span class="hidden md:inline">新建事件</span>
-        </el-button>
+    <div class="app-header flex items-center justify-between mb-6 md:mb-8">
+      <img src="./assets/banner_title.png" alt="START 游戏日历" class="app-title-logo h-auto max-h-6 md:max-h-11" style="width: auto; display: block" fetchpriority="high" width="300" height="44" />
+      <div class="auth-control-group">
+        <div class="flex items-center gap-2">
+          <div class="auth-mode-switch" aria-label="权限模式">
+            <button
+              type="button"
+              class="auth-mode-button"
+              :class="{ active: !isAdmin }"
+              :disabled="authLoading"
+              @click="isAdmin && (logoutDialogVisible = true)"
+            >浏览</button>
+            <button
+              type="button"
+              class="auth-mode-button"
+              :class="{ active: isAdmin }"
+              :disabled="authLoading"
+              @click="onEnterAdminMode"
+            >管理</button>
+          </div>
+          <el-button type="primary" :disabled="!isAdmin" @click="onNewEvent">
+            <el-icon class="md:mr-1"><Plus /></el-icon>
+            <span class="hidden md:inline">新建事件</span>
+          </el-button>
+        </div>
+        <p v-if="!isAdmin" class="auth-mode-hint">浏览模式下仅可查看日历</p>
       </div>
     </div>
 
@@ -825,6 +885,7 @@ const statsExpanded = ref(false)
         :days="days"
         :data-by-date="dataByDate"
         :selected-date="activeFilterDate"
+        :can-edit="isAdmin"
         @select-date="onSelectDate"
         @add-event="onAddEventForDate"
       />
@@ -888,6 +949,7 @@ const statsExpanded = ref(false)
       <div class="p-4 md:py-5 md:px-6" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px">
         <QuickManage
           :items="quickManageItems"
+          :can-edit="isAdmin"
           :is-item-action-pending="isItemActionPending"
           @edit-annotation="onEditAnnotation"
           @hide-news="onHideNews"
@@ -905,6 +967,7 @@ const statsExpanded = ref(false)
       v-show="activePage === 'news'"
       :items="overviewItems"
       :loading="overviewLoading"
+      :can-edit="isAdmin"
       :is-item-action-pending="isItemActionPending"
       @refresh="loadOverview(true)"
       @edit-annotation="onEditAnnotation"
@@ -920,6 +983,7 @@ const statsExpanded = ref(false)
       :visible="detailVisible"
       :date="selectedDate"
       :items="selectedItems"
+      :can-edit="isAdmin"
       :is-item-action-pending="isItemActionPending"
       @close="detailVisible = false"
       @edit-annotation="onEditAnnotation"
@@ -957,8 +1021,137 @@ const statsExpanded = ref(false)
     <SettingsPage
       v-show="activePage === 'settings'"
       :active="activePage === 'settings'"
+      :can-edit="isAdmin"
       @restore-item="onRestoreItem"
     />
+
+    <AdminLoginDialog
+      v-model:visible="loginDialogVisible"
+      :loading="authLoading"
+      @login="onAdminLogin"
+    />
+
+    <el-dialog
+      v-model="logoutDialogVisible"
+      title="退出管理模式"
+      width="320px"
+      class="admin-logout-dialog"
+      append-to-body
+      :close-on-click-modal="!authLoading"
+      :close-on-press-escape="!authLoading"
+    >
+      <p class="admin-logout-desc">退出后将无法编辑日历。</p>
+      <template #footer>
+        <el-button :disabled="authLoading" @click="logoutDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="authLoading" @click="onConfirmLogout">退出</el-button>
+      </template>
+    </el-dialog>
   </main>
   </ElConfigProvider>
 </template>
+
+<style scoped>
+:global(.admin-logout-dialog) {
+  width: min(320px, calc(100vw - 64px)) !important;
+}
+
+.admin-logout-desc {
+  margin: 0;
+  color: #888;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.app-title-logo {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.auth-control-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.auth-mode-hint {
+  margin: 0;
+  color: #999;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.auth-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.auth-mode-button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #999;
+  font-size: 0.8125rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.auth-mode-button.active {
+  background: #111;
+  color: #fff;
+}
+
+.auth-mode-button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.auth-mode-button:not(:disabled):not(.active):hover {
+  background: #f5f5f5;
+  color: #555;
+}
+
+@media (max-width: 767px) {
+  .app-header {
+    align-items: center;
+    gap: 8px;
+  }
+
+  .app-title-logo {
+    max-width: clamp(132px, 46vw, 160px);
+    transform: translateY(-8px);
+  }
+
+  .auth-control-group > .flex {
+    max-width: 48vw;
+  }
+
+  .auth-control-group {
+    flex: 0 0 auto;
+    gap: 3px;
+  }
+
+  .auth-mode-hint {
+    max-width: 48vw;
+    overflow: hidden;
+    font-size: 0.625rem;
+    text-overflow: ellipsis;
+    transform: translateY(-1px);
+  }
+
+  .auth-mode-button {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 0.75rem;
+  }
+}
+</style>

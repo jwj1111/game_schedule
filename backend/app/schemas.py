@@ -7,7 +7,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # ==================== 统一日历查询 ====================
@@ -124,3 +124,26 @@ class OwnerResponse(BaseModel):
     owners: List[str]
 
     model_config = {"from_attributes": True}
+
+
+# ==================== 管理员认证 ====================
+
+class AuthLoginRequest(BaseModel):
+    """管理员密码登录请求体。"""
+    password: str = Field(..., min_length=1)
+
+
+class AuthLoginResponse(BaseModel):
+    """管理员登录响应。"""
+    token: str
+    is_admin: bool
+    auth_type: str
+    expires_in: int
+
+
+class AuthStatusResponse(BaseModel):
+    """当前认证状态。"""
+    is_admin: bool
+    auth_type: Optional[str] = None
+    expires_at: Optional[int] = None
+

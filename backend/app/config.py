@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import secrets
 
 from dotenv import load_dotenv
 
@@ -46,6 +47,11 @@ CLEANUP_HOUR: int = int(os.getenv("CLEANUP_HOUR", "3"))
 
 # ---------- 企微推送 ----------
 WECOM_WEBHOOK: str = os.getenv("WECOM_WEBHOOK", "")
+
+# ---------- 管理员认证 ----------
+ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "")
+AUTH_SECRET_KEY: str = os.getenv("AUTH_SECRET_KEY", "") or secrets.token_urlsafe(32)
+AUTH_TOKEN_EXPIRE_SECONDS: int = int(os.getenv("AUTH_TOKEN_EXPIRE_SECONDS", str(7 * 24 * 60 * 60)))
 
 
 if __name__ == "__main__":

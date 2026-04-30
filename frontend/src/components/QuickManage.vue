@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
+  canEdit: { type: Boolean, default: false },
   isItemActionPending: { type: Function, default: () => false },
 })
 
@@ -134,14 +135,22 @@ const dateCountMap = computed(() => {
   return map
 })
 
+const totalVisibleCount = computed(() => Object.values(dateCountMap.value).reduce((sum, count) => sum + count, 0))
+
 function getDateCount(dateStr) {
   return dateCountMap.value[dateStr] || 0
 }
 
+function isActionDisabled(action, item = null) {
+  return !props.canEdit || (item ? props.isItemActionPending(action, item) : false)
+}
+
 function onPriorityChange(item, newPriority) {
+  if (!props.canEdit) return
   emit('quick-priority', { item, priority: newPriority })
 }
 function onResourceToggle(item) {
+  if (!props.canEdit) return
   emit('quick-resource', { item, resource_ready: !item.resource_ready })
 }
 
@@ -207,7 +216,7 @@ function onContentTouchEnd(e) {
       <div class="flex items-center gap-2">
         <span style="font-weight: 600; font-size: 0.9375rem; color: #111">快速管理</span>
         <span v-if="!expanded" style="font-size: 0.8125rem; color: #999; font-variant-numeric: tabular-nums">
-          {{ availableDates.length }} 天 · {{ Object.values(dateCountMap).reduce((a, b) => a + b, 0) }} 条
+          {{ availableDates.length }} 天 · {{ totalVisibleCount }} 条
         </span>
       </div>
       <button
@@ -300,6 +309,7 @@ function onContentTouchEnd(e) {
                         class="px-2 py-0.5 text-xs rounded border transition-colors cursor-pointer"
                         :class="item.priority === opt.value ? [opt.bg, opt.text, opt.border] : ''"
                         :style="item.priority !== opt.value ? { background: '#fff', borderColor: '#e5e5e5', color: '#ccc' } : {}"
+                        :disabled="isActionDisabled('priority', item)"
                         @click="onPriorityChange(item, opt.value)"
                       >{{ opt.label }}</button>
                     </div>
@@ -312,6 +322,7 @@ function onContentTouchEnd(e) {
                       active-text="已配置"
                       inactive-text="未配置"
                       style="--el-switch-on-color: #34c759"
+                      :disabled="isActionDisabled('resource', item)"
                       @change="() => onResourceToggle(item)"
                     />
                   </div>
@@ -332,14 +343,14 @@ function onContentTouchEnd(e) {
                   <span style="font-size: 0.6875rem; color: #ccc">{{ item.source === 'news' ? '抓取' : '手动' }}</span>
                   <div class="flex gap-1">
                     <template v-if="item.source === 'news'">
-                      <el-button size="small" text @click="emit('edit-annotation', item)">编辑备注</el-button>
-                      <el-button size="small" text @click="emit('hide-news', item)">隐藏</el-button>
+                      <el-button size="small" text :disabled="isActionDisabled('edit', item)" @click="emit('edit-annotation', item)">编辑备注</el-button>
+                      <el-button size="small" text :disabled="isActionDisabled('hide', item)" @click="emit('hide-news', item)">隐藏</el-button>
                     </template>
                     <template v-else>
-                      <el-button size="small" text @click="emit('edit-event', item)">编辑</el-button>
+                      <el-button size="small" text :disabled="isActionDisabled('edit', item)" @click="emit('edit-event', item)">编辑</el-button>
                       <el-popconfirm title="确认删除？不可恢复" :icon="null" hide-icon width="180" placement="top" teleported @confirm="emit('delete-event', item)">
                         <template #reference>
-                          <el-button size="small" text style="color: #ef4444" :disabled="props.isItemActionPending('delete', item)">删除</el-button>
+                          <el-button size="small" text style="color: #ef4444" :disabled="isActionDisabled('delete', item)">删除</el-button>
 
                         </template>
                       </el-popconfirm>

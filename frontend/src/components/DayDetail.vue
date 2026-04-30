@@ -5,6 +5,7 @@ const props = defineProps({
   date: { type: String, default: '' },
   items: { type: Array, default: () => [] },
   visible: { type: Boolean, default: false },
+  canEdit: { type: Boolean, default: false },
   isItemActionPending: { type: Function, default: () => false },
 })
 
@@ -98,10 +99,16 @@ function syncItems() {
   hiddenItems.value = props.items.filter(i => i.hidden)
 }
 
+function isActionDisabled(action, item = null) {
+  return !props.canEdit || (item ? props.isItemActionPending(action, item) : false)
+}
+
 function onPriorityChange(item, newPriority) {
+  if (!props.canEdit) return
   emit('quick-priority', { item, priority: newPriority })
 }
 function onResourceToggle(item) {
+  if (!props.canEdit) return
   emit('quick-resource', { item, resource_ready: !item.resource_ready })
 }
 // ==================== 移动端右滑关闭 ====================
@@ -138,7 +145,7 @@ function onTouchEnd(e) {
       @touchend.passive="onTouchEnd"
     >
     <div v-if="groupedGames.length > 0 || hiddenItems.length > 0" style="margin-bottom: 16px">
-      <el-button size="small" @click="emit('add-event', date)">
+      <el-button size="small" :disabled="isActionDisabled('add')" @click="emit('add-event', date)">
         + 添加事项
       </el-button>
     </div>
@@ -146,7 +153,7 @@ function onTouchEnd(e) {
     <div v-if="groupedGames.length === 0 && hiddenItems.length === 0" style="text-align: center; padding: 48px 0">
       <div style="color: #999; margin-bottom: 4px; font-size: 0.8125rem">当天没有排期</div>
       <div style="color: #ccc; margin-bottom: 16px; font-size: 0.75rem">清闲的一天，或者安排点什么？</div>
-      <el-button size="small" @click="emit('add-event', date)">+ 添加事项</el-button>
+      <el-button size="small" :disabled="isActionDisabled('add')" @click="emit('add-event', date)">+ 添加事项</el-button>
     </div>
 
     <!-- 按游戏分组 -->
@@ -181,7 +188,7 @@ function onTouchEnd(e) {
                   class="px-2 py-0.5 text-xs rounded border transition-colors cursor-pointer"
                   :class="item.priority === opt.value ? [opt.bg, opt.text, opt.border] : ''"
                   :style="item.priority !== opt.value ? { background: '#fff', borderColor: '#e5e5e5', color: '#ccc' } : {}"
-                  :disabled="props.isItemActionPending('priority', item)"
+                  :disabled="isActionDisabled('priority', item)"
                   @click="onPriorityChange(item, opt.value)"
                 >{{ opt.label }}</button>
 
@@ -195,6 +202,7 @@ function onTouchEnd(e) {
                 active-text="已配置"
                 inactive-text="未配置"
                 style="--el-switch-on-color: #34c759"
+                :disabled="isActionDisabled('resource', item)"
                 @change="() => onResourceToggle(item)"
               />
             </div>
@@ -215,14 +223,14 @@ function onTouchEnd(e) {
             <span style="font-size: 0.6875rem; color: #ccc">{{ item.source === 'news' ? '抓取' : '手动' }}</span>
             <div class="flex gap-1">
               <template v-if="item.source === 'news'">
-                <el-button size="small" text @click="emit('edit-annotation', item)">编辑备注</el-button>
-                <el-button size="small" text @click="emit('hide-news', item)">隐藏</el-button>
+                <el-button size="small" text :disabled="isActionDisabled('edit', item)" @click="emit('edit-annotation', item)">编辑备注</el-button>
+                <el-button size="small" text :disabled="isActionDisabled('hide', item)" @click="emit('hide-news', item)">隐藏</el-button>
               </template>
               <template v-else>
-                <el-button size="small" text @click="emit('edit-event', item)">编辑</el-button>
+                <el-button size="small" text :disabled="isActionDisabled('edit', item)" @click="emit('edit-event', item)">编辑</el-button>
                 <el-popconfirm title="确认删除？不可恢复" :icon="null" hide-icon width="180" placement="top" teleported @confirm="emit('delete-event', item)">
                   <template #reference>
-                    <el-button size="small" text style="color: #ef4444">删除</el-button>
+                    <el-button size="small" text style="color: #ef4444" :disabled="isActionDisabled('delete', item)">删除</el-button>
                   </template>
                 </el-popconfirm>
               </template>
@@ -245,7 +253,7 @@ function onTouchEnd(e) {
             <span style="font-size: 0.75rem; color: #999">{{ item.game }}</span>
             <p style="font-size: 0.75rem; color: #ccc; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ item.title }}</p>
           </div>
-          <el-button size="small" text :disabled="props.isItemActionPending('restore', item)" @click="emit('restore-news', item)">恢复</el-button>
+          <el-button size="small" text :disabled="isActionDisabled('restore', item)" @click="emit('restore-news', item)">恢复</el-button>
 
         </div>
       </div>
