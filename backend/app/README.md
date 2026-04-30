@@ -17,7 +17,7 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `pipeline.py` | 完整流水线：爬取 → 预处理 → 入库 |
 | `preprocessor.py` | 入库前预处理：筛选含"X月X日"的标题 + 提取 `online_date`（独立可替换） |
 | `scheduler.py` | APScheduler 注册：定时爬取入库 + 定期过期清理 |
-| `api/news.py` | 统一日历查询 + 游戏列表 |
+| `api/news.py` | 统一日历查询 + 游戏/负责人列表 + 已隐藏数据查询 |
 | `api/annotations.py` | 标注 CRUD（针对爬虫数据的附加属性） |
 | `api/events.py` | 自定义事件 CRUD |
 | `api/owners.py` | 游戏负责人管理 |
@@ -49,7 +49,7 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | 接口 | 方法 | 说明 |
 | --- | --- | --- |
 | `/` | GET | 健康检查 |
-| `/api/calendar` | GET | 统一查询（合并爬虫+标注+事件），按月加载 |
+| `/api/calendar` | GET | 统一查询（合并爬虫+标注+事件），支持自定义日期范围加载 |
 | `/api/games` | GET | 所有游戏名（爬虫+事件+负责人三表去重） |
 | `/api/owner-names` | GET | 所有负责人姓名（去重，供筛选下拉框使用） |
 | `/api/hidden` | GET | 所有已隐藏的爬虫数据（用于恢复显示） |
