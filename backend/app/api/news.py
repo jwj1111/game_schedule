@@ -8,10 +8,11 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, time, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
@@ -83,6 +84,7 @@ def calendar_query(
             resource_ready=ann.resource_ready if ann else False,
             hidden=is_hidden,
             owners=owner_map.get(news.game, []),
+            created_at=news.created_at,
         ))
 
     # ---- 用户事件 ----
@@ -108,11 +110,73 @@ def calendar_query(
             resource_ready=event.resource_ready,
             hidden=False,
             owners=owner_map.get(event.game, []),
+            created_at=event.created_at,
         ))
 
     # 排序：日期升序 + 优先级降序
     items.sort(key=lambda x: (x.item_date, -x.priority))
 
+    return CalendarResponse(total=len(items), items=items)
+
+
+@router.get("/overview", response_model=CalendarResponse)
+def overview_query(db: Session = Depends(get_db)):
+    """资讯速览数据：当天入库 + 未来 15 天 + 过去 3 天相关事项。"""
+    today = date.today()
+    range_start = today - timedelta(days=3)
+    range_end = today + timedelta(days=15)
+    created_start = datetime.combine(today, time.min)
+    created_end = datetime.combine(today, time.max)
+
+    owner_map = {o.game: o.owners for o in db.query(GameOwner).all()}
+    items_by_key = {}
+
+    news_rows = db.query(GameNews).filter(or_(
+        GameNews.created_at.between(created_start, created_end),
+        GameNews.online_date.between(range_start, range_end),
+    )).all()
+    for news in news_rows:
+        ann = news.annotation
+        is_hidden = bool(ann and ann.hidden)
+        item = CalendarItem(
+            id=news.id,
+            source="news",
+            game=news.game,
+            title=news.info,
+            link=news.link,
+            item_date=news.online_date,
+            priority=ann.priority if ann else 0,
+            alias=ann.alias if ann else "",
+            resource_ready=ann.resource_ready if ann else False,
+            hidden=is_hidden,
+            owners=owner_map.get(news.game, []),
+            created_at=news.created_at,
+        )
+        items_by_key[(item.source, item.id)] = item
+
+    event_rows = db.query(UserEvent).filter(or_(
+        UserEvent.created_at.between(created_start, created_end),
+        UserEvent.event_date.between(range_start, range_end),
+    )).all()
+    for event in event_rows:
+        item = CalendarItem(
+            id=event.id,
+            source="event",
+            game=event.game,
+            title=event.description,
+            link="",
+            item_date=event.event_date,
+            priority=event.priority,
+            alias=event.alias,
+            resource_ready=event.resource_ready,
+            hidden=False,
+            owners=owner_map.get(event.game, []),
+            created_at=event.created_at,
+        )
+        items_by_key[(item.source, item.id)] = item
+
+    items = list(items_by_key.values())
+    items.sort(key=lambda x: (x.item_date, -x.priority))
     return CalendarResponse(total=len(items), items=items)
 
 
@@ -161,5 +225,6 @@ def list_hidden(db: Session = Depends(get_db)):
             resource_ready=ann.resource_ready,
             hidden=True,
             owners=[],
+            created_at=news.created_at,
         ))
     return HiddenListResponse(total=len(items), items=items)

@@ -27,6 +27,10 @@ export function fetchCalendar(startDate, endDate, { games, owners, keyword } = {
   return request(`/calendar?${params}`)
 }
 
+export function fetchOverview() {
+  return request('/overview')
+}
+
 export function fetchGames() {
   return request('/games')
 }

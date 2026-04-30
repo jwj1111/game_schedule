@@ -25,6 +25,7 @@ class CalendarItem(BaseModel):
     resource_ready: bool # 资源位
     hidden: bool         # 仅爬虫数据有，事件始终 False
     owners: List[str]    # 游戏负责人列表
+    created_at: Optional[datetime] = None # 入库/创建时间（资讯速览使用）
 
 
 class CalendarResponse(BaseModel):

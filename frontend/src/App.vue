@@ -12,13 +12,14 @@ import StatsCard from './components/StatsCard.vue'
 import QuickManage from './components/QuickManage.vue'
 import TopSegmentSwitch from './components/TopSegmentSwitch.vue'
 import SettingsPage from './components/SettingsPage.vue'
+import NewsOverview from './components/NewsOverview.vue'
 
 // 懒加载：非首屏关键组件（弹窗/侧栏，用户交互后才需要）
 const DayDetail = defineAsyncComponent(() => import('./components/DayDetail.vue'))
 const AnnotationForm = defineAsyncComponent(() => import('./components/AnnotationForm.vue'))
 const EventForm = defineAsyncComponent(() => import('./components/EventForm.vue'))
 import {
-  fetchCalendar, fetchGames, fetchOwnerNames,
+  fetchCalendar, fetchOverview, fetchGames, fetchOwnerNames,
   updateAnnotation,
   createEvent, updateEvent, deleteEvent as apiDeleteEvent,
   createOwner,
@@ -78,6 +79,14 @@ const loading = ref(false)
 const filterGames = ref('')
 const filterOwners = ref('')
 const filterKeyword = ref('')
+
+// ==================== 顶部页面切换 ====================
+const activePage = ref('home')
+const pageOptions = [
+  { label: '首页', value: 'home' },
+  { label: '资讯速览', value: 'news' },
+  { label: '设置', value: 'settings' },
+]
 
 function onFilterChange({ games, owners, source, priority, resource, keyword, dateRange: dr }) {
   // 前端筛选（不触发 API）
@@ -386,7 +395,50 @@ async function loadOwnerNames() {
   }
 }
 
+// ==================== 资讯速览数据 ====================
+const overviewItems = ref([])
+const overviewLoading = ref(false)
+const overviewLoaded = ref(false)
+const overviewStale = ref(false)
+const overviewReloadQueued = ref(false)
+
+async function loadOverview(force = false) {
+  if (overviewLoading.value) {
+    if (force) overviewReloadQueued.value = true
+    return
+  }
+  if (overviewLoaded.value && !overviewStale.value && !force) return
+
+  overviewLoading.value = true
+  try {
+    const res = await fetchOverview()
+    overviewItems.value = res.items || []
+    overviewLoaded.value = true
+    overviewStale.value = false
+  } catch (e) {
+    console.error('加载资讯速览失败:', e)
+    ElMessage.error('资讯速览加载失败')
+  } finally {
+    overviewLoading.value = false
+    if (overviewReloadQueued.value) {
+      overviewReloadQueued.value = false
+      await loadOverview(true)
+    }
+  }
+}
+
+function markOverviewStale(refreshIfVisible = true) {
+  overviewStale.value = true
+  if (refreshIfVisible && activePage.value === 'news') {
+    void loadOverview(true)
+  }
+}
+
 watch([currentYear, currentMonth], loadData)
+
+watch(activePage, (page) => {
+  if (page === 'news') loadOverview()
+})
 
 watch(hasActiveFilter, (active) => {
   if (!active) {
@@ -425,19 +477,48 @@ function onSelectDate(dateStr) {
 }
 
 // ==================== 就地更新工具 ====================
+function updateItemInList(list, source, id, updates) {
+  const idx = list.findIndex(i => i.source === source && i.id === id)
+  if (idx === -1) return list
+  const next = [...list]
+  next[idx] = { ...next[idx], ...updates }
+  return next
+}
+
 function updateItemInPlace(source, id, updates) {
-  const idx = calendarData.value.findIndex(i => i.source === source && i.id === id)
-  if (idx !== -1) {
-    calendarData.value[idx] = { ...calendarData.value[idx], ...updates }
+  calendarData.value = updateItemInList(calendarData.value, source, id, updates)
+  if (rangeData.value !== null) {
+    rangeData.value = updateItemInList(rangeData.value, source, id, updates)
   }
+  if (navigationItems.value.length) {
+    navigationItems.value = updateItemInList(navigationItems.value, source, id, updates)
+  }
+  if (overviewLoaded.value || overviewItems.value.length) {
+    overviewItems.value = updateItemInList(overviewItems.value, source, id, updates)
+  }
+  markOverviewStale()
 }
 
 function removeItemInPlace(source, id) {
   calendarData.value = calendarData.value.filter(i => !(i.source === source && i.id === id))
+  if (rangeData.value !== null) {
+    rangeData.value = rangeData.value.filter(i => !(i.source === source && i.id === id))
+  }
+  if (navigationItems.value.length) {
+    navigationItems.value = navigationItems.value.filter(i => !(i.source === source && i.id === id))
+  }
+  if (overviewLoaded.value || overviewItems.value.length) {
+    overviewItems.value = overviewItems.value.filter(i => !(i.source === source && i.id === id))
+  }
+  markOverviewStale()
 }
 
 function addItemInPlace(item) {
   calendarData.value.push(item)
+  if (rangeData.value !== null && dateRange.value?.length === 2 && item.item_date >= dateRange.value[0] && item.item_date <= dateRange.value[1]) {
+    rangeData.value = [...rangeData.value, item]
+  }
+  markOverviewStale()
 }
 
 const pendingActionMap = ref({})
@@ -679,14 +760,6 @@ async function onAddGame({ game, owners }) {
   })
 }
 
-// ==================== 顶部页面切换 ====================
-const activePage = ref('home')
-const pageOptions = [
-  { label: '首页', value: 'home' },
-  { label: '资讯速览', value: 'news' },
-  { label: '设置', value: 'settings' },
-]
-
 // ==================== 统计切换 ====================
 const statsView = ref('all') // 'all' | 'key'
 const statsExpanded = ref(false)
@@ -828,14 +901,19 @@ const statsExpanded = ref(false)
     </div>
     </div>
 
-    <section v-show="activePage === 'news'" class="p-6 md:p-8" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; min-height: 320px">
-        <div class="mx-auto flex flex-col items-center justify-center text-center" style="min-height: 260px; max-width: 360px">
-          <div style="font-size: 0.875rem; font-weight: 600; color: #111; margin-bottom: 6px">资讯速览</div>
-          <div style="font-size: 0.8125rem; color: #999; line-height: 1.6">
-            页面已预留，后续可在这里承载资讯列表、重点摘要和快速处理入口。
-          </div>
-        </div>
-    </section>
+    <NewsOverview
+      v-show="activePage === 'news'"
+      :items="overviewItems"
+      :loading="overviewLoading"
+      :is-item-action-pending="isItemActionPending"
+      @refresh="loadOverview(true)"
+      @edit-annotation="onEditAnnotation"
+      @hide-news="onHideNews"
+      @edit-event="onEditEvent"
+      @delete-event="onDeleteEvent"
+      @quick-priority="onQuickPriority"
+      @quick-resource="onQuickResource"
+    />
 
     <!-- 日期详情侧栏 -->
     <DayDetail
