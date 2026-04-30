@@ -11,12 +11,12 @@ import FilterBar from './components/FilterBar.vue'
 import StatsCard from './components/StatsCard.vue'
 import QuickManage from './components/QuickManage.vue'
 import TopSegmentSwitch from './components/TopSegmentSwitch.vue'
+import SettingsPage from './components/SettingsPage.vue'
 
 // 懒加载：非首屏关键组件（弹窗/侧栏，用户交互后才需要）
 const DayDetail = defineAsyncComponent(() => import('./components/DayDetail.vue'))
 const AnnotationForm = defineAsyncComponent(() => import('./components/AnnotationForm.vue'))
 const EventForm = defineAsyncComponent(() => import('./components/EventForm.vue'))
-const SettingsPanel = defineAsyncComponent(() => import('./components/SettingsPanel.vue'))
 import {
   fetchCalendar, fetchGames, fetchOwnerNames,
   updateAnnotation,
@@ -679,14 +679,12 @@ async function onAddGame({ game, owners }) {
   })
 }
 
-// ==================== 设置面板 ====================
-const settingsVisible = ref(false)
-
 // ==================== 顶部页面切换 ====================
 const activePage = ref('home')
 const pageOptions = [
   { label: '首页', value: 'home' },
   { label: '资讯速览', value: 'news' },
+  { label: '设置', value: 'settings' },
 ]
 
 // ==================== 统计切换 ====================
@@ -704,10 +702,6 @@ const statsExpanded = ref(true)
         <el-button type="primary" @click="onNewEvent">
           <el-icon class="md:mr-1"><Plus /></el-icon>
           <span class="hidden md:inline">新建事件</span>
-        </el-button>
-        <el-button @click="settingsVisible = true">
-          <el-icon class="md:mr-1"><Setting /></el-icon>
-          <span class="hidden md:inline">设置</span>
         </el-button>
       </div>
     </div>
@@ -882,10 +876,9 @@ const statsExpanded = ref(true)
       @add-game="onAddGame"
     />
 
-    <!-- 设置面板 -->
-    <SettingsPanel
-      :visible="settingsVisible"
-      @close="settingsVisible = false"
+    <SettingsPage
+      v-show="activePage === 'settings'"
+      :active="activePage === 'settings'"
       @restore-item="onRestoreItem"
     />
   </main>

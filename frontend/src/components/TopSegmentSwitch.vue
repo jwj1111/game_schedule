@@ -12,6 +12,7 @@ const rootRef = ref(null)
 const canDrag = ref(false)
 const dragging = ref(false)
 const dragTranslate = ref(0)
+const suppressClick = ref(false)
 let dragStartX = 0
 let dragStartTranslate = 0
 let segmentWidth = 0
@@ -29,6 +30,7 @@ const thumbStyle = computed(() => ({
 }))
 
 function selectOption(option) {
+  if (suppressClick.value) return
   if (option.value !== props.modelValue) {
     emit('update:modelValue', option.value)
   }
