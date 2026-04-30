@@ -6,7 +6,9 @@ const props = defineProps({
   days: { type: Array, required: true },
   dataByDate: { type: Object, default: () => ({}) },
   maxShow: { type: Number, default: 3 },
+  selectedDate: { type: String, default: '' },
 })
+
 
 const emit = defineEmits(['select-date', 'add-event'])
 
@@ -32,21 +34,37 @@ const processedDays = computed(() => {
   return props.days.map(day => {
     const dateStr = day.date.format('YYYY-MM-DD')
     const isToday = dateStr === today
+    const isSelected = dateStr === props.selectedDate
     const dayOfWeek = day.date.day()
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+
+    let defaultBg = isToday ? '#f0f0f0' : (day.isCurrentMonth ? (isWeekend ? '#fafafa' : '#fff') : '#f5f5f5')
+    let hoverBg = isToday ? '#ebebeb' : '#f5f5f5'
+    let dateColor = isToday ? '#fff' : (day.isCurrentMonth ? '#555' : '#ccc')
+    let dateWeight = isToday ? '600' : '400'
+
+    if (isSelected) {
+      defaultBg = day.isCurrentMonth ? '#fafafa' : '#f5f5f5'
+      hoverBg = day.isCurrentMonth ? '#f5f5f5' : '#f0f0f0'
+      dateColor = '#111'
+      dateWeight = '600'
+    }
+
+
     return {
       ...day,
       dateStr,
       dateNum: day.date.date(),
       isToday,
-      isWeekend,
-      defaultBg: isToday ? '#f0f0f0' : (day.isCurrentMonth ? (isWeekend ? '#fafafa' : '#fff') : '#f5f5f5'),
-      hoverBg: isToday ? '#ebebeb' : '#f5f5f5',
-      dateColor: isToday ? '#fff' : (day.isCurrentMonth ? '#555' : '#ccc'),
-      dateWeight: isToday ? '600' : '400',
+      isSelected,
+      defaultBg,
+      hoverBg,
+      dateColor,
+      dateWeight,
     }
   })
 })
+
 
 const gameTagsByDate = computed(() => {
   const result = {}
@@ -102,6 +120,7 @@ function getPriorityClass(p) {
         v-for="(day, idx) in processedDays"
         :key="idx"
         class="group cursor-pointer h-14 md:h-[140px]"
+        :class="{ 'selected-cell': day.isSelected }"
         style="border-right: 1px solid #e5e5e5; border-bottom: 1px solid #e5e5e5; padding: 6px 6px 8px; transition: background-color 150ms; overflow: hidden"
         :style="{ backgroundColor: day.defaultBg }"
         @mouseenter="$event.currentTarget.style.backgroundColor = day.hoverBg"
@@ -111,17 +130,19 @@ function getPriorityClass(p) {
         @click="emit('select-date', day.dateStr)"
         @keyup.enter="emit('select-date', day.dateStr)"
       >
+
         <!-- 日期数字 + 添加按钮 -->
         <div class="flex items-center justify-between mb-1 md:mb-1.5">
           <span
             class="text-xs md:text-sm"
-            :class="day.isToday ? 'today-badge' : ''"
+            :class="[day.isToday ? 'today-badge' : '', day.isSelected ? 'selected-date-number' : '']"
             :style="{
               color: day.dateColor,
               fontWeight: day.dateWeight,
               fontVariantNumeric: 'tabular-nums',
             }"
           >
+
             {{ day.dateNum }}
           </span>
           <button
@@ -173,3 +194,24 @@ function getPriorityClass(p) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.selected-cell {
+  position: relative;
+}
+
+.selected-cell::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1.5px dashed #d6d6d6;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.selected-date-number {
+  color: #111 !important;
+}
+</style>
+
+

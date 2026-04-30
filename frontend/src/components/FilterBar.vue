@@ -7,9 +7,14 @@ import BottomSheetSelect from './BottomSheetSelect.vue'
 const props = defineProps({
   gameOptions: { type: Array, default: () => [] },
   ownerOptions: { type: Array, default: () => [] },
+  navigationStarted: { type: Boolean, default: false },
+  navigationBusy: { type: Boolean, default: false },
+  navigationAvailable: { type: Boolean, default: true },
+  canNavigatePrev: { type: Boolean, default: false },
+  canNavigateNext: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['filter-change'])
+const emit = defineEmits(['filter-change', 'navigate-filter-date'])
 
 const selectedGames = ref([])
 const selectedOwners = ref([])
@@ -158,6 +163,43 @@ function clearAll() {
   emitChange()
 }
 
+function isNavDisabled(direction) {
+  if (props.navigationBusy || !props.navigationAvailable) return true
+  if (!props.navigationStarted) return false
+  return direction === 'prev' ? !props.canNavigatePrev : !props.canNavigateNext
+}
+
+function getNavButtonStyle(direction) {
+  const disabled = isNavDisabled(direction)
+  const base = {
+    width: '24px',
+    height: '24px',
+    padding: '0',
+    borderRadius: '8px',
+    flexShrink: 0,
+    lineHeight: 1,
+  }
+  return disabled
+    ? {
+        ...base,
+        borderColor: '#eeeeee',
+        color: '#cfcfcf',
+        background: '#fafafa',
+        cursor: 'not-allowed',
+      }
+    : {
+        ...base,
+        borderColor: '#e5e5e5',
+        color: '#999',
+        background: '#fff',
+      }
+}
+
+function navigateFilteredDate(direction) {
+  if (isNavDisabled(direction)) return
+  emit('navigate-filter-date', direction)
+}
+
 watch([selectedGames, selectedOwners], emitChange)
 watch(keyword, debouncedEmit)
 
@@ -174,16 +216,39 @@ const priorityButtons = [
     <!-- 移动端：折叠按钮 + 搜索 -->
     <div class="md:hidden flex items-center gap-2" :class="mobileExpanded ? 'mb-2' : ''">
       <button
-        class="flex items-center gap-1 px-3 py-1.5 border rounded-md text-sm transition-colors"
+        class="flex items-center gap-0.5 px-2 py-1 border rounded-md text-xs transition-colors shrink-0"
         style="border-color: #e5e5e5; color: #555"
         :style="{ backgroundColor: mobileExpanded ? '#f5f5f5' : '#fff' }"
         @click="mobileExpanded = !mobileExpanded"
       >
-        <el-icon><Setting /></el-icon>
         筛选
         <span v-if="hasFilter" style="color: #111; font-weight: 600">·</span>
       </button>
-      <span v-if="hasFilter" style="font-size: 12px; color: #999; cursor: pointer" @click="clearAll">清除</span>
+      <div v-if="hasFilter" class="flex items-center gap-1 shrink-0">
+        <span style="font-size: 12px; color: #999; cursor: pointer" @click="clearAll">清除</span>
+        <button
+          class="flex items-center justify-center border pill-press cursor-pointer"
+          :style="getNavButtonStyle('prev')"
+          :disabled="isNavDisabled('prev')"
+          aria-label="上一个有事项日期"
+          @click="navigateFilteredDate('prev')"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M7.5 2.5L4 6L7.5 9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button
+          class="flex items-center justify-center border pill-press cursor-pointer"
+          :style="getNavButtonStyle('next')"
+          :disabled="isNavDisabled('next')"
+          aria-label="下一个有事项日期"
+          @click="navigateFilteredDate('next')"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
       <el-input v-model="keyword" placeholder="搜索事件关键词..." clearable size="small" class="flex-1" aria-label="关键词搜索" />
     </div>
 
@@ -355,16 +420,39 @@ const priorityButtons = [
         >未配置</button>
       </div>
 
-      <!-- 清除 — 推到右上角 -->
+      <!-- 清除 + 日期导航 — 推到右上角 -->
       <span class="flex-1"></span>
-      <span
-        v-if="hasFilter"
-        class="text-xs cursor-pointer"
-        style="color: #999"
-        @click="clearAll"
-        @mouseenter="$event.target.style.color='#555'"
-        @mouseleave="$event.target.style.color='#999'"
-      >清除</span>
+      <div v-if="hasFilter" class="flex items-center gap-1.5">
+        <span
+          class="text-xs cursor-pointer"
+          style="color: #999"
+          @click="clearAll"
+          @mouseenter="$event.target.style.color='#555'"
+          @mouseleave="$event.target.style.color='#999'"
+        >清除</span>
+        <button
+          class="flex items-center justify-center border pill-press cursor-pointer"
+          :style="getNavButtonStyle('prev')"
+          :disabled="isNavDisabled('prev')"
+          aria-label="上一个有事项日期"
+          @click="navigateFilteredDate('prev')"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M7.5 2.5L4 6L7.5 9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button
+          class="flex items-center justify-center border pill-press cursor-pointer"
+          :style="getNavButtonStyle('next')"
+          :disabled="isNavDisabled('next')"
+          aria-label="下一个有事项日期"
+          @click="navigateFilteredDate('next')"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- PC 第二行：日期区 + 搜索，各占一半 -->

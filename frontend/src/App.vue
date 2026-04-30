@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, inject, defineAsyncComponent } from 'vue'
-import { ElMessage, ElConfigProvider } from 'element-plus'
+import { ElConfigProvider } from 'element-plus'
 import dayjs from 'dayjs'
+import { message } from './utils/message.js'
 
+const ElMessage = message
 const elLocale = inject('elLocale')
 import CalendarGrid from './components/CalendarGrid.vue'
 import FilterBar from './components/FilterBar.vue'
@@ -102,22 +104,165 @@ const filterPriority = ref(null)    // null=不筛选，数组=多选
 const filterSource = ref(null)      // null=不筛选，'news'/'event'
 const filterResource = ref(null)    // null=不筛选，true/false
 
-const filteredData = computed(() => {
-  let items = calendarData.value
+function applyFrontendFilters(items) {
+  let filtered = items
   if (filterPriority.value && filterPriority.value.length) {
-    items = items.filter(i => filterPriority.value.includes(i.priority))
+    filtered = filtered.filter(i => filterPriority.value.includes(i.priority))
   }
   if (filterSource.value !== null) {
-    items = items.filter(i => i.source === filterSource.value)
+    filtered = filtered.filter(i => i.source === filterSource.value)
   }
   if (filterResource.value !== null) {
-    items = items.filter(i => i.resource_ready === filterResource.value)
+    filtered = filtered.filter(i => i.resource_ready === filterResource.value)
   }
   if (dateRange.value && dateRange.value.length === 2) {
-    items = items.filter(i => i.item_date >= dateRange.value[0] && i.item_date <= dateRange.value[1])
+    filtered = filtered.filter(i => i.item_date >= dateRange.value[0] && i.item_date <= dateRange.value[1])
   }
-  return items
+  return filtered
+}
+
+const hasActiveFilter = computed(() => Boolean(
+  filterGames.value ||
+  filterOwners.value ||
+  filterKeyword.value.trim() ||
+  (filterPriority.value && filterPriority.value.length) ||
+  filterSource.value !== null ||
+  filterResource.value !== null ||
+  (dateRange.value && dateRange.value.length === 2)
+))
+
+const filteredData = computed(() => applyFrontendFilters(calendarData.value))
+
+const navigationItems = ref([])
+const navigationLoading = ref(false)
+const navigationLoaded = ref(false)
+const navigationCacheKey = ref('')
+const activeFilterDate = ref('')
+
+const navigationRange = computed(() => {
+  if (dateRange.value && dateRange.value.length === 2) {
+    return { start: dateRange.value[0], end: dateRange.value[1] }
+  }
+  return {
+    start: minMonth.format('YYYY-MM-DD'),
+    end: maxMonth.endOf('month').format('YYYY-MM-DD'),
+  }
 })
+
+const navigationQueryKey = computed(() => JSON.stringify({
+  start: navigationRange.value.start,
+  end: navigationRange.value.end,
+  games: filterGames.value || '',
+  owners: filterOwners.value || '',
+  keyword: filterKeyword.value.trim(),
+}))
+
+const navigableDates = computed(() => {
+  const visibleItems = applyFrontendFilters(navigationItems.value).filter(item => !item.hidden)
+  return [...new Set(visibleItems.map(item => item.item_date))]
+    .sort((a, b) => dayjs(a).valueOf() - dayjs(b).valueOf())
+})
+
+const activeFilterDateIndex = computed(() => {
+  if (!activeFilterDate.value) return -1
+  return navigableDates.value.indexOf(activeFilterDate.value)
+})
+
+const navigationAvailable = computed(() => !navigationLoaded.value || navigableDates.value.length > 0)
+const canNavigatePrevDate = computed(() => activeFilterDateIndex.value > 0)
+const canNavigateNextDate = computed(() => (
+  activeFilterDateIndex.value >= 0 && activeFilterDateIndex.value < navigableDates.value.length - 1
+))
+
+function resetFilterNavigationState() {
+  activeFilterDate.value = ''
+  navigationItems.value = []
+  navigationLoaded.value = false
+  navigationCacheKey.value = ''
+  navigationLoading.value = false
+}
+
+async function ensureNavigationItems(force = false) {
+  if (!hasActiveFilter.value) {
+    resetFilterNavigationState()
+    return []
+  }
+
+  const cacheKey = navigationQueryKey.value
+  if (!force && navigationLoaded.value && navigationCacheKey.value === cacheKey) {
+    return navigationItems.value
+  }
+
+  navigationLoading.value = true
+  try {
+    const res = await fetchCalendar(navigationRange.value.start, navigationRange.value.end, {
+      games: filterGames.value || undefined,
+      owners: filterOwners.value || undefined,
+      keyword: filterKeyword.value || undefined,
+    })
+    navigationItems.value = res.items || []
+    navigationLoaded.value = true
+    navigationCacheKey.value = cacheKey
+    return navigationItems.value
+  } catch (e) {
+    console.error('加载筛选导航失败:', e)
+    ElMessage.error('筛选定位失败，请稍后重试')
+    return navigationItems.value
+  } finally {
+    navigationLoading.value = false
+  }
+}
+
+function syncMonthToDate(dateStr) {
+  if (!dateStr) return
+  const visibleDates = new Set(days.value.map(day => day.date.format('YYYY-MM-DD')))
+  if (visibleDates.has(dateStr)) return
+
+  const targetDate = dayjs(dateStr)
+  const targetMonth = targetDate.startOf('month')
+  slideDirection.value = targetMonth.isAfter(currentDayjs.value) ? 'right' : 'left'
+  currentYear.value = targetDate.year()
+  currentMonth.value = targetDate.month() + 1
+}
+
+function focusFilterDate(dateStr) {
+  if (!dateStr) {
+    activeFilterDate.value = ''
+    return
+  }
+  activeFilterDate.value = dateStr
+  syncMonthToDate(dateStr)
+}
+
+async function onNavigateFilteredDate(direction) {
+  if (!hasActiveFilter.value || navigationLoading.value) return
+
+  await ensureNavigationItems()
+  const dates = navigableDates.value
+
+  if (!dates.length) {
+    activeFilterDate.value = ''
+    ElMessage.info('当前筛选下没有可定位的事项')
+    return
+  }
+
+  if (!activeFilterDate.value) {
+    focusFilterDate(dates[0])
+    return
+  }
+
+  const currentIndex = dates.indexOf(activeFilterDate.value)
+  if (currentIndex === -1) {
+    focusFilterDate(dates[0])
+    return
+  }
+
+  const nextIndex = direction === 'prev'
+    ? Math.max(0, currentIndex - 1)
+    : Math.min(dates.length - 1, currentIndex + 1)
+
+  focusFilterDate(dates[nextIndex])
+}
 
 const dataByDate = computed(() => groupByDate(filteredData.value))
 
@@ -144,17 +289,7 @@ watch(dateRange, async (val) => {
 
 const statsSourceData = computed(() => {
   const source = rangeData.value !== null ? rangeData.value : calendarData.value
-  let items = source
-  if (filterPriority.value && filterPriority.value.length) {
-    items = items.filter(i => filterPriority.value.includes(i.priority))
-  }
-  if (filterSource.value !== null) {
-    items = items.filter(i => i.source === filterSource.value)
-  }
-  if (filterResource.value !== null) {
-    items = items.filter(i => i.resource_ready === filterResource.value)
-  }
-  return items
+  return applyFrontendFilters(source)
 })
 
 // ==================== 月度统计 ====================
@@ -251,6 +386,30 @@ async function loadOwnerNames() {
 }
 
 watch([currentYear, currentMonth], loadData)
+
+watch(hasActiveFilter, (active) => {
+  if (!active) {
+    resetFilterNavigationState()
+  }
+})
+
+watch(navigationQueryKey, async (_newKey, oldKey) => {
+  if (!oldKey || !hasActiveFilter.value) return
+  if (!navigationLoaded.value && !activeFilterDate.value) return
+  await ensureNavigationItems(true)
+})
+
+watch(navigableDates, (dates) => {
+  if (!activeFilterDate.value) return
+  if (!dates.length) {
+    activeFilterDate.value = ''
+    return
+  }
+  if (!dates.includes(activeFilterDate.value)) {
+    focusFilterDate(dates[0])
+  }
+})
+
 onMounted(() => { Promise.all([loadGames(), loadOwnerNames(), loadData()]) })
 
 // ==================== 日期详情侧栏 ====================
@@ -280,6 +439,41 @@ function addItemInPlace(item) {
   calendarData.value.push(item)
 }
 
+const pendingActionMap = ref({})
+
+function isActionPending(key) {
+  return Boolean(pendingActionMap.value[key])
+}
+
+function setActionPending(key, pending) {
+  const nextMap = { ...pendingActionMap.value }
+  if (pending) nextMap[key] = true
+  else delete nextMap[key]
+  pendingActionMap.value = nextMap
+}
+
+async function runLockedAction(key, action) {
+  if (isActionPending(key)) return null
+  setActionPending(key, true)
+  try {
+    return await action()
+  } finally {
+    setActionPending(key, false)
+  }
+}
+
+function getItemActionKey(action, item) {
+  return `${action}:${item.source}:${item.id}`
+}
+
+function isItemActionPending(action, item) {
+  return isActionPending(getItemActionKey(action, item))
+}
+
+const annotationSaving = computed(() => isActionPending('annotation-save'))
+const eventSaving = computed(() => isActionPending('event-save'))
+const addGameSaving = computed(() => isActionPending('event-add-game'))
+
 // ==================== 标注编辑 ====================
 const annotationFormVisible = ref(false)
 const annotationTarget = ref(null)
@@ -290,67 +484,78 @@ function onEditAnnotation(item) {
 }
 
 async function onSaveAnnotation(formData) {
-  try {
-    await updateAnnotation(annotationTarget.value.id, formData)
-    updateItemInPlace('news', annotationTarget.value.id, {
-      priority: formData.priority,
-      alias: formData.alias,
-      resource_ready: formData.resource_ready,
-    })
-    annotationFormVisible.value = false
-    ElMessage.success('备注已保存')
-  } catch (e) {
-    ElMessage.error('更新失败: ' + e.message)
-  }
+  if (!annotationTarget.value) return
+  await runLockedAction('annotation-save', async () => {
+    try {
+      await updateAnnotation(annotationTarget.value.id, formData)
+      updateItemInPlace('news', annotationTarget.value.id, {
+        priority: formData.priority,
+        alias: formData.alias,
+        resource_ready: formData.resource_ready,
+      })
+      annotationFormVisible.value = false
+      ElMessage.success('备注已保存')
+    } catch (e) {
+      ElMessage.error('更新失败: ' + e.message)
+    }
+  })
 }
 
 // ==================== 快捷操作：优先级 ====================
 async function onQuickPriority({ item, priority }) {
-  try {
-    if (item.source === 'news') {
-      await updateAnnotation(item.id, { priority })
-    } else {
-      await updateEvent(item.id, { priority })
+  await runLockedAction(getItemActionKey('priority', item), async () => {
+    try {
+      if (item.source === 'news') {
+        await updateAnnotation(item.id, { priority })
+      } else {
+        await updateEvent(item.id, { priority })
+      }
+      updateItemInPlace(item.source, item.id, { priority })
+    } catch (e) {
+      ElMessage.error('更新失败: ' + e.message)
     }
-    updateItemInPlace(item.source, item.id, { priority })
-  } catch (e) {
-    ElMessage.error('更新失败: ' + e.message)
-  }
+  })
 }
 
 // ==================== 快捷操作：资源位 ====================
 async function onQuickResource({ item, resource_ready }) {
-  try {
-    if (item.source === 'news') {
-      await updateAnnotation(item.id, { resource_ready })
-    } else {
-      await updateEvent(item.id, { resource_ready })
+  await runLockedAction(getItemActionKey('resource', item), async () => {
+    try {
+      if (item.source === 'news') {
+        await updateAnnotation(item.id, { resource_ready })
+      } else {
+        await updateEvent(item.id, { resource_ready })
+      }
+      updateItemInPlace(item.source, item.id, { resource_ready })
+    } catch (e) {
+      ElMessage.error('更新失败: ' + e.message)
     }
-    updateItemInPlace(item.source, item.id, { resource_ready })
-  } catch (e) {
-    ElMessage.error('更新失败: ' + e.message)
-  }
+  })
 }
 
 // ==================== 隐藏 / 恢复 ====================
 async function onHideNews(item) {
-  try {
-    await updateAnnotation(item.id, { hidden: true })
-    updateItemInPlace('news', item.id, { hidden: true })
-    ElMessage.success('已隐藏')
-  } catch (e) {
-    ElMessage.error('隐藏失败: ' + e.message)
-  }
+  await runLockedAction(getItemActionKey('hide', item), async () => {
+    try {
+      await updateAnnotation(item.id, { hidden: true })
+      updateItemInPlace('news', item.id, { hidden: true })
+      ElMessage.success('已隐藏')
+    } catch (e) {
+      ElMessage.error('隐藏失败: ' + e.message)
+    }
+  })
 }
 
 async function onRestoreNews(item) {
-  try {
-    await updateAnnotation(item.id, { hidden: false })
-    updateItemInPlace('news', item.id, { hidden: false })
-    ElMessage.success('已恢复显示')
-  } catch (e) {
-    ElMessage.error('恢复失败: ' + e.message)
-  }
+  await runLockedAction(getItemActionKey('restore', item), async () => {
+    try {
+      await updateAnnotation(item.id, { hidden: false })
+      updateItemInPlace('news', item.id, { hidden: false })
+      ElMessage.success('已恢复显示')
+    } catch (e) {
+      ElMessage.error('恢复失败: ' + e.message)
+    }
+  })
 }
 
 function onRestoreItem(item) {
@@ -380,51 +585,53 @@ function onEditEvent(item) {
 }
 
 async function onSaveEvent(formData) {
-  try {
-    if (formData.id) {
-      const res = await updateEvent(formData.id, {
-        description: formData.description,
-        event_date: formData.event_date,
-        priority: formData.priority,
-        resource_ready: formData.resource_ready,
-      })
-      updateItemInPlace('event', formData.id, {
-        title: res.description,
-        item_date: res.event_date,
-        priority: res.priority,
-        resource_ready: res.resource_ready,
-      })
-      ElMessage.success('事件已更新')
-    } else {
-      const res = await createEvent({
-        game: formData.game,
-        description: formData.description,
-        event_date: formData.event_date,
-        priority: formData.priority,
-        resource_ready: formData.resource_ready,
-        alias: '',
-      })
-      addItemInPlace({
-        id: res.id,
-        source: 'event',
-        game: res.game,
-        title: res.description,
-        link: '',
-        item_date: res.event_date,
-        priority: res.priority,
-        alias: '',
-        resource_ready: res.resource_ready,
-        hidden: false,
-        owners: [],
-      })
-      ElMessage.success('事件已创建')
-      // 脉冲高亮对应日期格
-      pulseDate(res.event_date)
+  await runLockedAction('event-save', async () => {
+    try {
+      if (formData.id) {
+        const res = await updateEvent(formData.id, {
+          description: formData.description,
+          event_date: formData.event_date,
+          priority: formData.priority,
+          resource_ready: formData.resource_ready,
+        })
+        updateItemInPlace('event', formData.id, {
+          title: res.description,
+          item_date: res.event_date,
+          priority: res.priority,
+          resource_ready: res.resource_ready,
+        })
+        ElMessage.success('事件已更新')
+      } else {
+        const res = await createEvent({
+          game: formData.game,
+          description: formData.description,
+          event_date: formData.event_date,
+          priority: formData.priority,
+          resource_ready: formData.resource_ready,
+          alias: '',
+        })
+        addItemInPlace({
+          id: res.id,
+          source: 'event',
+          game: res.game,
+          title: res.description,
+          link: '',
+          item_date: res.event_date,
+          priority: res.priority,
+          alias: '',
+          resource_ready: res.resource_ready,
+          hidden: false,
+          owners: [],
+        })
+        ElMessage.success('事件已创建')
+        // 脉冲高亮对应日期格
+        pulseDate(res.event_date)
+      }
+      eventFormVisible.value = false
+    } catch (e) {
+      ElMessage.error('保存失败，请重试')
     }
-    eventFormVisible.value = false
-  } catch (e) {
-    ElMessage.error('保存失败，请重试')
-  }
+  })
 }
 
 // 日期格脉冲高亮
@@ -442,29 +649,33 @@ function pulseDate(dateStr) {
 }
 
 async function onDeleteEvent(item) {
-  try {
-    await apiDeleteEvent(item.id)
-    removeItemInPlace('event', item.id)
-    ElMessage.success('事件已删除')
-  } catch (e) {
-    ElMessage.error('删除失败，请重试')
-  }
+  await runLockedAction(getItemActionKey('delete', item), async () => {
+    try {
+      await apiDeleteEvent(item.id)
+      removeItemInPlace('event', item.id)
+      ElMessage.success('事件已删除')
+    } catch (e) {
+      ElMessage.error('删除失败，请重试')
+    }
+  })
 }
 
 // ==================== 添加新游戏 ====================
 async function onAddGame({ game, owners }) {
-  try {
-    await createOwner({ game, owners: owners || [] })
-    if (!gameOptions.value.includes(game)) {
-      gameOptions.value.push(game)
-      gameOptions.value.sort()
+  await runLockedAction('event-add-game', async () => {
+    try {
+      await createOwner({ game, owners: owners || [] })
+      if (!gameOptions.value.includes(game)) {
+        gameOptions.value.push(game)
+        gameOptions.value.sort()
+      }
+      ElMessage.success(`已添加游戏: ${game}`)
+    } catch (e) {
+      if (!e.message.includes('409') && !e.message.includes('已存在')) {
+        ElMessage.error('添加失败: ' + e.message)
+      }
     }
-    ElMessage.success(`已添加游戏: ${game}`)
-  } catch (e) {
-    if (!e.message.includes('409') && !e.message.includes('已存在')) {
-      ElMessage.error('添加失败: ' + e.message)
-    }
-  }
+  })
 }
 
 // ==================== 设置面板 ====================
@@ -495,18 +706,28 @@ const statsExpanded = ref(true)
 
     <!-- 筛选栏 -->
     <div class="mb-6 md:mb-8 p-3 md:p-4" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px">
-      <FilterBar :game-options="gameOptions" :owner-options="ownerOptions" @filter-change="onFilterChange" />
+      <FilterBar
+        :game-options="gameOptions"
+        :owner-options="ownerOptions"
+        :navigation-started="Boolean(activeFilterDate)"
+        :navigation-busy="navigationLoading"
+        :navigation-available="navigationAvailable"
+        :can-navigate-prev="canNavigatePrevDate"
+        :can-navigate-next="canNavigateNextDate"
+        @filter-change="onFilterChange"
+        @navigate-filter-date="onNavigateFilteredDate"
+      />
     </div>
 
     <!-- 月份导航 -->
     <div class="flex items-center justify-center md:justify-start gap-2 md:gap-3 mb-3 md:mb-4">
-      <el-button size="small" :disabled="!canPrev" @click="prevMonth">
+      <el-button class="month-nav-button pill-press" size="small" :disabled="!canPrev" @click="prevMonth">
         <el-icon><ArrowLeft /></el-icon>
       </el-button>
       <span class="text-sm md:text-base" style="font-weight: 600; color: #111; min-width: 100px; text-align: center; display: inline-block; font-variant-numeric: tabular-nums">
         {{ monthLabel }}
       </span>
-      <el-button size="small" :disabled="!canNext" @click="nextMonth">
+      <el-button class="month-nav-button pill-press" size="small" :disabled="!canNext" @click="nextMonth">
         <el-icon><ArrowRight /></el-icon>
       </el-button>
       <el-button size="small" type="primary" plain @click="goToday">今天</el-button>
@@ -522,6 +743,7 @@ const statsExpanded = ref(true)
       <CalendarGrid
         :days="days"
         :data-by-date="dataByDate"
+        :selected-date="activeFilterDate"
         @select-date="onSelectDate"
         @add-event="onAddEventForDate"
       />
@@ -585,6 +807,7 @@ const statsExpanded = ref(true)
       <div class="p-4 md:py-5 md:px-6" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px">
         <QuickManage
           :items="quickManageItems"
+          :is-item-action-pending="isItemActionPending"
           @edit-annotation="onEditAnnotation"
           @hide-news="onHideNews"
           @edit-event="onEditEvent"
@@ -601,6 +824,7 @@ const statsExpanded = ref(true)
       :visible="detailVisible"
       :date="selectedDate"
       :items="selectedItems"
+      :is-item-action-pending="isItemActionPending"
       @close="detailVisible = false"
       @edit-annotation="onEditAnnotation"
       @hide-news="onHideNews"
@@ -616,6 +840,7 @@ const statsExpanded = ref(true)
     <AnnotationForm
       :visible="annotationFormVisible"
       :item="annotationTarget"
+      :saving="annotationSaving"
       @close="annotationFormVisible = false"
       @save="onSaveAnnotation"
     />
@@ -626,6 +851,8 @@ const statsExpanded = ref(true)
       :event="eventTarget"
       :game-options="gameOptions"
       :default-date="selectedDate"
+      :saving="eventSaving"
+      :adding-game="addGameSaving"
       @close="eventFormVisible = false"
       @save="onSaveEvent"
       @add-game="onAddGame"

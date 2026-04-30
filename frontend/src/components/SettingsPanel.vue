@@ -1,7 +1,11 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { message } from '../utils/message.js'
+
+const ElMessage = message
+
 import {
+
   fetchOwners, fetchGames, createOwner, updateOwner,
   fetchHidden, updateAnnotation,
 } from '../api/index.js'
@@ -26,7 +30,7 @@ async function loadOwners() {
     const ownersData = await fetchOwners()
     const ownerMap = {}
     for (const o of ownersData) {
-      ownerMap[o.game] = { id: o.id, owners: o.owners }
+      ownerMap[o.game] = { owners: o.owners }
     }
     ownerRows.value = allGames.map(game => ({
       game,
@@ -70,19 +74,21 @@ function removeEditTag(tag) {
 }
 
 async function saveEdit(row) {
-  try {
-    if (row.exists) {
-      await updateOwner(row.game, { owners: editingTags.value })
-    } else {
-      await createOwner({ game: row.game, owners: editingTags.value })
-      row.exists = true
+  await runLockedAction(`save-owner:${row.game}`, async () => {
+    try {
+      if (row.exists) {
+        await updateOwner(row.game, { owners: editingTags.value })
+      } else {
+        await createOwner({ game: row.game, owners: editingTags.value })
+        row.exists = true
+      }
+      row.owners = [...editingTags.value]
+      editingGame.value = null
+      ElMessage.success('负责人已更新')
+    } catch (e) {
+      ElMessage.error('更新失败: ' + e.message)
     }
-    row.owners = [...editingTags.value]
-    editingGame.value = null
-    ElMessage.success('负责人已更新')
-  } catch (e) {
-    ElMessage.error('更新失败: ' + e.message)
-  }
+  })
 }
 
 // ==================== 已隐藏数据 ====================
@@ -102,15 +108,18 @@ async function loadHidden() {
 }
 
 async function restoreItem(item) {
-  try {
-    await updateAnnotation(item.id, { hidden: false })
-    hiddenItems.value = hiddenItems.value.filter(i => i.id !== item.id)
-    emit('restore-item', item)
-    ElMessage.success('已恢复显示')
-  } catch (e) {
-    ElMessage.error('恢复失败: ' + e.message)
-  }
+  await runLockedAction(`restore-hidden:${item.id}`, async () => {
+    try {
+      await updateAnnotation(item.id, { hidden: false })
+      hiddenItems.value = hiddenItems.value.filter(i => i.id !== item.id)
+      emit('restore-item', item)
+      ElMessage.success('已恢复显示')
+    } catch (e) {
+      ElMessage.error('恢复失败: ' + e.message)
+    }
+  })
 }
+
 
 // 按游戏分组
 const hiddenByGame = computed(() => {
@@ -182,10 +191,11 @@ function onTouchEnd(e) {
                   <el-tag
                     v-for="tag in editingTags"
                     :key="tag"
-                    closable
+                    :closable="!currentEditSaving"
                     size="small"
                     @close="removeEditTag(tag)"
                   >
+
                     {{ tag }}
                   </el-tag>
                 </div>
@@ -195,13 +205,17 @@ function onTouchEnd(e) {
                     size="small"
                     placeholder="输入姓名后回车"
                     class="flex-1"
+                    :disabled="currentEditSaving"
                     @keyup.enter="addEditTag"
                   />
-                  <el-button size="small" @click="addEditTag">添加</el-button>
+
+                  <el-button size="small" :disabled="currentEditSaving" @click="addEditTag">添加</el-button>
+
                 </div>
                 <div class="flex gap-2">
-                  <el-button size="small" type="primary" @click="saveEdit(row)">保存</el-button>
-                  <el-button size="small" @click="cancelEdit">取消</el-button>
+                  <el-button size="small" type="primary" :loading="currentEditSaving" :disabled="currentEditSaving" @click="saveEdit(row)">保存</el-button>
+                  <el-button size="small" :disabled="currentEditSaving" @click="cancelEdit">取消</el-button>
+
                 </div>
               </template>
 
@@ -240,7 +254,8 @@ function onTouchEnd(e) {
                   <div class="text-xs text-gray-600 truncate">{{ item.title }}</div>
                   <div class="text-[10px] text-gray-400">{{ item.item_date }}</div>
                 </div>
-                <el-button size="small" type="primary" text @click="restoreItem(item)">
+                <el-button size="small" type="primary" text :loading="isActionPending(`restore-hidden:${item.id}`)" :disabled="isActionPending(`restore-hidden:${item.id}`)" @click="restoreItem(item)">
+
                   恢复显示
                 </el-button>
               </div>

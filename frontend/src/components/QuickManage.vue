@@ -3,11 +3,14 @@ import { ref, computed, watch, nextTick } from 'vue'
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
+  isItemActionPending: { type: Function, default: () => false },
 })
+
+
 
 const emit = defineEmits([
   'edit-annotation', 'hide-news',
-  'edit-event', 'delete-event', 'add-event',
+  'edit-event', 'delete-event',
   'quick-priority', 'quick-resource',
 ])
 
@@ -336,7 +339,8 @@ function onContentTouchEnd(e) {
                       <el-button size="small" text @click="emit('edit-event', item)">编辑</el-button>
                       <el-popconfirm title="确认删除？不可恢复" :icon="null" hide-icon width="180" placement="top" teleported @confirm="emit('delete-event', item)">
                         <template #reference>
-                          <el-button size="small" text style="color: #ef4444">删除</el-button>
+                          <el-button size="small" text style="color: #ef4444" :disabled="props.isItemActionPending('delete', item)">删除</el-button>
+
                         </template>
                       </el-popconfirm>
                     </template>

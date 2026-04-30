@@ -4,7 +4,9 @@ import { ref, watch } from 'vue'
 const props = defineProps({
   visible: { type: Boolean, default: false },
   item: { type: Object, default: null },
+  saving: { type: Boolean, default: false },
 })
+
 
 const emit = defineEmits(['close', 'save'])
 
@@ -25,8 +27,10 @@ watch(() => props.item, (val) => {
 }, { immediate: true })
 
 function onSave() {
+  if (props.saving) return
   emit('save', { ...form.value })
 }
+
 </script>
 
 <template>
@@ -65,8 +69,9 @@ function onSave() {
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="emit('close')">取消</el-button>
-      <el-button type="primary" @click="onSave">保存</el-button>
+      <el-button :disabled="saving" @click="emit('close')">取消</el-button>
+      <el-button type="primary" :loading="saving" :disabled="saving" @click="onSave">保存</el-button>
     </template>
+
   </el-dialog>
 </template>

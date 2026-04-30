@@ -1,12 +1,15 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { message } from '../utils/message.js'
 
+const ElMessage = message
 const props = defineProps({
   visible: { type: Boolean, default: false },
   event: { type: Object, default: null },
   gameOptions: { type: Array, default: () => [] },
   defaultDate: { type: String, default: '' },
+  saving: { type: Boolean, default: false },
+  addingGame: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['close', 'save', 'add-game'])
@@ -80,7 +83,10 @@ function onAddGame() {
   showNewGame.value = false
 }
 
+const isBusy = computed(() => props.saving || props.addingGame)
+
 function onSave() {
+  if (isBusy.value) return
   if (!form.value.game) return ElMessage.warning('请选择游戏')
   if (!form.value.description.trim()) return ElMessage.warning('请填写描述')
   if (!form.value.event_date) return ElMessage.warning('请选择日期')
@@ -113,7 +119,7 @@ function onSave() {
         <!-- 新建游戏模式 -->
         <div v-else class="flex flex-col gap-3 w-full">
           <div class="flex gap-2">
-            <el-input v-model="newGameName" placeholder="输入新游戏名" class="flex-1" />
+            <el-input v-model="newGameName" placeholder="输入新游戏名" class="flex-1" :disabled="isBusy" />
             <el-button size="default" @click="showNewGame = false" title="返回选择">
               <el-icon><ArrowLeft /></el-icon>
             </el-button>
@@ -139,18 +145,19 @@ function onSave() {
                 placeholder="输入姓名后回车"
                 size="small"
                 class="flex-1"
+                :disabled="isBusy"
                 @keyup.enter="addOwnerTag"
               />
               <el-button size="small" @click="addOwnerTag">添加</el-button>
             </div>
           </div>
 
-          <el-button type="primary" size="default" @click="onAddGame">确认添加游戏</el-button>
+          <el-button type="primary" size="default" :loading="addingGame" :disabled="isBusy" @click="onAddGame">确认添加游戏</el-button>
         </div>
       </el-form-item>
 
       <el-form-item label="描述">
-        <el-input v-model="form.description" type="textarea" :rows="2" placeholder="事件描述" />
+        <el-input v-model="form.description" type="textarea" :rows="2" placeholder="事件描述" :disabled="isBusy" />
       </el-form-item>
       <el-form-item label="日期">
         <el-date-picker
@@ -180,12 +187,12 @@ function onSave() {
         </div>
       </el-form-item>
       <el-form-item label="资源位">
-        <el-switch v-model="form.resource_ready" active-text="已配置" inactive-text="未配置" style="--el-switch-on-color: #34c759" />
+        <el-switch v-model="form.resource_ready" active-text="已配置" inactive-text="未配置" style="--el-switch-on-color: #34c759" :disabled="isBusy" />
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="emit('close')">取消</el-button>
-      <el-button type="primary" @click="onSave">{{ isEdit ? '保存' : '创建' }}</el-button>
+      <el-button :disabled="isBusy" @click="emit('close')">取消</el-button>
+      <el-button type="primary" :loading="saving" :disabled="isBusy" @click="onSave">{{ isEdit ? '保存' : '创建' }}</el-button>
     </template>
   </el-dialog>
 </template>

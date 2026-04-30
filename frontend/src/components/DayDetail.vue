@@ -5,7 +5,10 @@ const props = defineProps({
   date: { type: String, default: '' },
   items: { type: Array, default: () => [] },
   visible: { type: Boolean, default: false },
+  isItemActionPending: { type: Function, default: () => false },
 })
+
+
 
 const emit = defineEmits([
   'close', 'edit-annotation', 'hide-news', 'restore-news',
@@ -14,10 +17,10 @@ const emit = defineEmits([
 ])
 
 const priorityOptions = [
-  { value: 3, label: '高', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', activeBg: 'bg-red-500' },
-  { value: 2, label: '中', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', activeBg: 'bg-amber-500' },
-  { value: 1, label: '低', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', activeBg: 'bg-blue-500' },
-  { value: 0, label: '无', bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-300', activeBg: 'bg-gray-400' },
+  { value: 3, label: '高', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
+  { value: 2, label: '中', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+  { value: 1, label: '低', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+  { value: 0, label: '无', bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-300' },
 ]
 
 // 构建排好序的分组快照
@@ -178,8 +181,10 @@ function onTouchEnd(e) {
                   class="px-2 py-0.5 text-xs rounded border transition-colors cursor-pointer"
                   :class="item.priority === opt.value ? [opt.bg, opt.text, opt.border] : ''"
                   :style="item.priority !== opt.value ? { background: '#fff', borderColor: '#e5e5e5', color: '#ccc' } : {}"
+                  :disabled="props.isItemActionPending('priority', item)"
                   @click="onPriorityChange(item, opt.value)"
                 >{{ opt.label }}</button>
+
               </div>
             </div>
             <div class="flex items-center gap-1.5">
@@ -240,7 +245,8 @@ function onTouchEnd(e) {
             <span style="font-size: 0.75rem; color: #999">{{ item.game }}</span>
             <p style="font-size: 0.75rem; color: #ccc; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ item.title }}</p>
           </div>
-          <el-button size="small" text @click="emit('restore-news', item)">恢复</el-button>
+          <el-button size="small" text :disabled="props.isItemActionPending('restore', item)" @click="emit('restore-news', item)">恢复</el-button>
+
         </div>
       </div>
     </div>
