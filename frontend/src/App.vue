@@ -10,6 +10,7 @@ import CalendarGrid from './components/CalendarGrid.vue'
 import FilterBar from './components/FilterBar.vue'
 import StatsCard from './components/StatsCard.vue'
 import QuickManage from './components/QuickManage.vue'
+import TopSegmentSwitch from './components/TopSegmentSwitch.vue'
 
 // 懒加载：非首屏关键组件（弹窗/侧栏，用户交互后才需要）
 const DayDetail = defineAsyncComponent(() => import('./components/DayDetail.vue'))
@@ -681,6 +682,13 @@ async function onAddGame({ game, owners }) {
 // ==================== 设置面板 ====================
 const settingsVisible = ref(false)
 
+// ==================== 顶部页面切换 ====================
+const activePage = ref('home')
+const pageOptions = [
+  { label: '首页', value: 'home' },
+  { label: '资讯速览', value: 'news' },
+]
+
 // ==================== 统计切换 ====================
 const statsView = ref('all') // 'all' | 'key'
 const statsExpanded = ref(true)
@@ -704,6 +712,12 @@ const statsExpanded = ref(true)
       </div>
     </div>
 
+    <!-- 顶部页面切换 -->
+    <div class="mb-6 md:mb-8 flex justify-center md:justify-start">
+      <TopSegmentSwitch v-model="activePage" :options="pageOptions" />
+    </div>
+
+    <div v-show="activePage === 'home'">
     <!-- 筛选栏 -->
     <div class="mb-6 md:mb-8 p-3 md:p-4" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px">
       <FilterBar
@@ -818,6 +832,16 @@ const statsExpanded = ref(true)
         />
       </div>
     </div>
+    </div>
+
+    <section v-show="activePage === 'news'" class="p-6 md:p-8" style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; min-height: 320px">
+        <div class="mx-auto flex flex-col items-center justify-center text-center" style="min-height: 260px; max-width: 360px">
+          <div style="font-size: 0.875rem; font-weight: 600; color: #111; margin-bottom: 6px">资讯速览</div>
+          <div style="font-size: 0.8125rem; color: #999; line-height: 1.6">
+            页面已预留，后续可在这里承载资讯列表、重点摘要和快速处理入口。
+          </div>
+        </div>
+    </section>
 
     <!-- 日期详情侧栏 -->
     <DayDetail
