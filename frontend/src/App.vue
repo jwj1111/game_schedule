@@ -689,7 +689,7 @@ const pageOptions = [
 
 // ==================== 统计切换 ====================
 const statsView = ref('all') // 'all' | 'key'
-const statsExpanded = ref(true)
+const statsExpanded = ref(false)
 </script>
 
 <template>
