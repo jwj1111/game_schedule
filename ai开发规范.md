@@ -35,7 +35,7 @@
 - **构建工具**：Vite
 - **核心框架**：Vue3（单文件组件，组合式 API setup）
 - **样式框架**：Tailwind CSS
-- **UI 组件库**：按需引入（如 Element Plus / Ant Design Vue）
+- **UI 组件库**：Element Plus（按需自动引入）
 - **部署**：Vite 构建为静态资源，Docker 中 Nginx 托管
 
 ---
@@ -203,7 +203,7 @@ frontend/node_modules/
   - 自定义事件 CRUD
   - 游戏负责人映射 CRUD
   - 定时过期数据清理
-- 集成企业微信机器人推送接口，配置推送触发规则
+- 预留企业微信机器人推送接口规划（后续开发）
 - 本地接口测试：通过 `localhost:8000/docs` 验证所有接口正常
 
 #### 4. Vue3 前端开发
