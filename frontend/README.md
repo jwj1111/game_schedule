@@ -14,7 +14,9 @@ Vite + Vue 3 + Element Plus + Tailwind CSS 构建的游戏排期日历看板。
 | `src/App.vue` | 根组件：数据加载、筛选逻辑、月份导航、子组件编排 |
 | `src/style.css` | 全局样式：Tailwind 导入、动画关键帧、Element Plus 覆盖 |
 | `src/api/index.js` | API 封装层：`fetch` 二次封装，所有后端接口调用 |
+| `src/composables/useAuth.js` | 组合式函数：管理员登录状态与鉴权逻辑 |
 | `src/utils/calendar.js` | 工具函数：月视图网格生成、按日期分组 |
+| `src/utils/message.js` | 工具函数：统一消息提示封装 |
 | `src/assets/` | 静态资源（banner 图等） |
 | `src/components/` | 业务组件（见下方） |
 
@@ -29,9 +31,13 @@ Vite + Vue 3 + Element Plus + Tailwind CSS 构建的游戏排期日历看板。
 | `QuickManage.vue` | 按日期快速管理面板，横向日期 pill 切换 |
 | `EventForm.vue` | 自定义事件新建/编辑弹窗 |
 | `AnnotationForm.vue` | 爬虫数据标注编辑弹窗 |
-| `SettingsPanel.vue` | 设置面板（负责人管理 + 已隐藏事项恢复） |
+| `SettingsPage.vue` | 设置页面（负责人管理 + 已隐藏事项恢复） |
 | `DateWheelPicker.vue` | 移动端滚轮日期选择器（iOS 风格底部弹出） |
 | `BottomSheetSelect.vue` | 移动端底部弹出多选面板 |
+| `AdminLoginDialog.vue` | 管理员登录验证弹窗 |
+| `NewsOverview.vue` | 资讯速览面板（近期重要事项概览） |
+| `OverviewItemGroups.vue` | 速览事项按日分组展示子组件 |
+| `TopSegmentSwitch.vue` | 顶部日历与速览视图分段切换器 |
 
 ---
 
@@ -70,7 +76,11 @@ npm run preview
 
 | 函数 | 方法 | 路径 | 说明 |
 | --- | --- | --- | --- |
-| `fetchCalendar()` | GET | `/api/calendar` | 统一查询（支持日期/游戏/负责人/关键词筛选） |
+| `loginAdmin()` | POST | `/api/auth/login` | 管理员密码登录 |
+| `fetchAuthStatus()` | GET | `/api/auth/status` | 查询管理员登录状态 |
+| `logoutAdmin()` | POST | `/api/auth/logout` | 退出管理员登录 |
+| `fetchCalendar()` | GET | `/api/calendar` | 统一日历查询（支持日期/游戏/负责人/关键词筛选） |
+| `fetchOverview()` | GET | `/api/overview` | 资讯速览查询（当天+未来15天+过去7天） |
 | `fetchGames()` | GET | `/api/games` | 游戏名列表 |
 | `fetchOwnerNames()` | GET | `/api/owner-names` | 负责人姓名列表 |
 | `fetchHidden()` | GET | `/api/hidden` | 已隐藏的爬虫数据 |

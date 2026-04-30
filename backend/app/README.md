@@ -17,7 +17,9 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `pipeline.py` | 完整流水线：爬取 → 预处理 → 入库 |
 | `preprocessor.py` | 入库前预处理：筛选含"X月X日"的标题 + 提取 `online_date`（独立可替换） |
 | `scheduler.py` | APScheduler 注册：定时爬取入库 + 定期过期清理 |
-| `api/news.py` | 统一日历查询 + 游戏列表 |
+| `auth.py` | 轻量管理员认证：密码验证与 JWT 签发解析 |
+| `api/auth.py` | 管理员认证接口（登录、状态、退出） |
+| `api/news.py` | 统一日历查询、资讯速览查询 + 游戏列表 |
 | `api/annotations.py` | 标注 CRUD（针对爬虫数据的附加属性） |
 | `api/events.py` | 自定义事件 CRUD |
 | `api/owners.py` | 游戏负责人管理 |
@@ -49,10 +51,11 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | 接口 | 方法 | 说明 |
 | --- | --- | --- |
 | `/` | GET | 健康检查 |
-| `/api/calendar` | GET | 统一查询（合并爬虫+标注+事件），按月加载 |
+| `/api/calendar` | GET | 统一日历查询（合并爬虫+标注+事件），按月加载 |
+| `/api/overview` | GET | 资讯速览查询（当天+未来15天+过去7天相关事项） |
 | `/api/games` | GET | 所有游戏名（爬虫+事件+负责人三表去重） |
 | `/api/owner-names` | GET | 所有负责人姓名（去重，供筛选下拉框使用） |
-| `/api/hidden` | GET | 所有已隐藏的爬虫数据（用于恢复显示） |
+| `/api/hidden` | GET | 所有已隐藏的爬虫数据（用于恢复显示，需管理员权限） |
 
 #### `/api/calendar` 参数
 
@@ -63,6 +66,14 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `games` | string | 否 | `DNF,LOL`（逗号分隔） |
 | `owners` | string | 否 | `张三,李四`（逗号分隔） |
 | `keyword` | string | 否 | `更新公告` |
+
+### 认证
+
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/api/auth/login` | POST | 管理员密码登录 |
+| `/api/auth/status` | GET | 查询当前管理员登录状态 |
+| `/api/auth/logout` | POST | 退出管理员登录 |
 
 ### 标注
 
@@ -102,6 +113,9 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `DATA_RETENTION_DAYS` | `60` | 过期天数（0 = 永不删除） |
 | `CLEANUP_DAY` | `mon` | 清理在星期几执行（mon~sun） |
 | `CLEANUP_HOUR` | `3` | 清理在几点执行（0~23） |
+| `ADMIN_PASSWORD` | 无 | 管理员登录密码（为空则禁止登录） |
+| `AUTH_SECRET_KEY` | 自动生成 | JWT 签名密钥 |
+| `AUTH_TOKEN_EXPIRE_SECONDS` | `604800` | 登录 Token 过期时间（秒），默认 7 天 |
 
 ### `backend/spiders/sites.yaml`（爬取间隔）
 
