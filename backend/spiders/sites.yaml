@@ -8,7 +8,7 @@
 schedule:
   # 爬取间隔，单字段 + 单位；最小单位：分钟
   # 支持：m(分钟) / h(小时) / d(天)，例：30m / 2h / 1d
-  interval: 30m
+  interval: 8h
 
 # ---------- 爬虫运行参数（对应 BaseSpider 的构造参数） ----------
 runtime:
@@ -96,4 +96,79 @@ sites:
   - game: nba2kol
     parser: nba2kol
     url: https://nba2k.qq.com/webplat/info/news_version3/476/1874/1875/1876/m1747/list_1.shtml
+    enabled: true
+
+  - game: 命运方舟
+    parser: 命运方舟
+    url: https://lostark.qq.com/web202304/news_list.html
+    enabled: true
+  
+  - game: 王者荣耀
+    parser: 王者荣耀
+    url: https://pvp.qq.com/web201706/newsindex.shtml
+    enabled: true
+  
+  - game: 穿越火线
+    parser: 穿越火线
+    url: https://cf.qq.com/web202410/newslist.html
+    enabled: true
+
+  - game: 无限暖暖
+    parser: 无限暖暖
+    url: https://infinitynikki.nuanpaper.com/news
+    enabled: true
+  
+  - game: 原神
+    parser: 原神
+    url: https://ys.mihoyo.com/main/news
+    enabled: true
+
+  - game: 天涯明月刀
+    parser: 天涯明月刀
+    url: https://wuxia.qq.com/webplat/info/news_version3/5012/5013/5014/m3485/list_1.shtml
+    enabled: true
+
+  - game: 暗区突围无限
+    parser: 暗区突围无限
+    url: https://aqtwwx.qq.com/web202501/news.html
+    enabled: true
+
+  - game: 流放之路
+    parser: 流放之路
+    url: https://poe.qq.com/webplat/info/news_version3/22557/22558/m14524/list_1.shtml
+    enabled: true
+
+  - game: 御龙在天
+    parser: 御龙在天
+    url: https://yl.qq.com/webplat/info/news_version3/118/430/m279/list_1.shtml
+    enabled: true
+  
+  - game: 星际战甲
+    parser: 星际战甲
+    url: https://wf.qq.com/newsList.shtml
+    enabled: true
+  
+  - game: 穿越火线HD
+    parser: 穿越火线HD
+    url: https://cfhd.cf.qq.com/web202305/newslist.html
+    enabled: true
+  
+  - game: 欢乐斗地主
+    parser: 欢乐斗地主
+    url: https://hlddz.qq.com/web202112/newsList.html
+    enabled: true
+
+  - game: 生死狙击2
+    parser: 生死狙击2
+    url: https://www.ssjj.cn/articles
+    enabled: true
+
+  - game: 崩坏星穹铁道
+    parser: 崩坏星穹铁道
+    url: https://sr.mihoyo.com/news?nav=news
+    enabled: true
+  
+  - game: 绝区零
+    parser: 绝区零
+    url: https://zzz.mihoyo.com/news
     enabled: true

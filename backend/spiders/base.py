@@ -58,6 +58,21 @@ class BaseSpider:
             "QQ三国": self.parse_qqsg,
             "金铲铲之战": self.parse_jcczz,
             "nba2kol": self.parse_nba2kol,
+            "命运方舟": self.parse_mingyunfangzhou,
+            "王者荣耀": self.parse_wzry,
+            "穿越火线": self.parse_cf,
+            "无限暖暖": self.parse_wuxiannuannuan,
+            "原神": self.parse_yuanshen,
+            "天涯明月刀": self.parse_tymyd,
+            "暗区突围无限": self.parse_aqtwwx,
+            "流放之路": self.parse_lfzl,
+            "御龙在天": self.parse_ylzt,
+            "星际战甲": self.parse_xjzj,
+            "穿越火线HD": self.parse_cfhd,
+            "欢乐斗地主": self.parse_hlddz,
+            "生死狙击2": self.parse_ssjz2,
+            "崩坏星穹铁道": self.parse_bhxqtd,
+            "绝区零": self.parse_jql,
         }
 
     # ---------------- 浏览器周期 ----------------
@@ -482,6 +497,346 @@ class BaseSpider:
             items.append(item)
         
         return items
+    
+    def parse_mingyunfangzhou(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """命运方舟解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.news-list-item ul")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li"):
+            a = li.select_one("a")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+            p = a.select_one("p")
+
+            item = self._empty_item(source="命运方舟")
+            item["info"] = p.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+
+        return items
+
+    def parse_wzry(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """王者荣耀解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.content-bar div.list ul.news-item")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li"):
+            a = li.select_one("a.art_word")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+            
+            item = self._empty_item(source="王者荣耀")
+            item["info"] = a.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_cf(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """穿越火线解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.news-list-main div.news-list-item ul")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li"):
+            a = li.select_one("a[target='_balnk']")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="穿越火线")
+            item["info"] = a.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+    
+    def parse_wuxiannuannuan(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """无限暖暖解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        div = soup.select_one("div.NewsList_box-list__5hwWi")
+        if div is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for sub_div in div.select("div.NewsInfoItem2_news-info__OETpY"):
+            info_div = sub_div.select_one("div.NewsInfoItem2_news-info-title__SYnzu")
+            if not info_div:
+                continue
+
+            item = self._empty_item(source="无限暖暖")
+            item["info"] = info_div.get_text(strip=True)
+            # 无限暖暖链接不在页面元素中
+            item["link"] = target_url
+            items.append(item)
+
+        return items
+    
+    def parse_yuanshen(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """原神解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.body ul.news")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li.news__item.news__tag-2"):
+            a = li.select_one("a.news__title.news__content.ellipsis")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+            h3 = li.select_one("h3.ellipsis")
+
+            item = self._empty_item(source="原神")
+            item["info"] = h3.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_tymyd(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """天涯明月刀解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.newsconcent.newsall ul.newslists")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li.news-st"):
+            a = li.select_one("a.cltit")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="天涯明月刀")
+            item["info"] = a.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_aqtwwx(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """暗区突围无限解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        div = soup.select_one("div.news-list#newslist")
+        if div is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for a in div.select("a.news-item"):
+            div_title = a.select_one("div.news-mes div.title")
+            if not div_title:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="暗区突围无限")
+            item["info"] = div_title.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_lfzl(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """流放之路解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.list-box ul")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li"):
+            a = li.select_one("a[target='_blank']")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="流放之路")
+            item["info"] = a.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    
+    def parse_ylzt(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """御龙在天解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.news_list ul")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li.clearfix"):
+            a = li.select_one("a[target='_blank']")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="御龙在天")
+            item["info"] = a.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_xjzj(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """星际战甲解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.infocent ul.infocententlist")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li.c"):
+            a = li.select_one("a")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+            p = a.select_one("p")
+
+            item = self._empty_item(source="星际战甲")
+            item["info"] = p.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_cfhd(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """穿越火线HD解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.news-list-item ul#newslist")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li.list-item"):
+            a = li.select_one("a")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+            p = a.select_one("p")
+
+            item = self._empty_item(source="穿越火线HD")
+            item["info"] = p.get_text(strip=True)
+            item["link"] = href
+            items.append(item)
+        
+        return items
+    
+    def parse_hlddz(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """欢乐斗地主解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        ul = soup.select_one("div.news-list ul#newsList")
+        if ul is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for li in ul.select("li.clearfix"):
+            a = li.select_one("a.s-left.news-txt")
+            if not a:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="欢乐斗地主")
+            item["info"] = a.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_ssjz2(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """生死狙击2解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        div = soup.select_one("div.news-main div.news-info")
+        if div is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for a in div.select("a.news-info-items-tag"):
+            div = a.select_one("div.news-info-item-title")
+            if not div:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="生死狙击2")
+            item["info"] = div.find(text=True, recursive=False).strip()
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+    
+    def parse_bhxqtd(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """崩坏星穹铁道解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        div = soup.select_one("div.list-wrap")
+        if div is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for a in div.select("a"):
+            div_title = a.select_one("div.header div.title")
+            if not div_title:
+                continue
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="崩坏星穹铁道")
+            item["info"] = div_title.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+    def parse_jql(self, html: str, target_url: str) -> List[Dict[str, Any]]:
+        """绝区零解析逻辑"""
+        soup = BeautifulSoup(html, "html.parser")
+        div = soup.select_one("div.news-wrap div.news-list")
+        if div is None:
+            return []
+        
+        items: List[Dict[str, Any]] = []
+        for div_item in div.select("div.news-list__item"):
+            a = div_item.select_one("div.news-list__item-content a")
+            if not a:
+                continue
+            div_title = a.select_one("div.news-list__item-title")
+            href = a.get("href", "").strip()
+
+            item = self._empty_item(source="绝区零")
+            item["info"] = div_title.get_text(strip=True)
+            item["link"] = urljoin(target_url, href)
+            items.append(item)
+        
+        return items
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
