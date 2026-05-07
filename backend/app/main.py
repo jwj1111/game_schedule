@@ -22,6 +22,7 @@ from backend.app.api.auth import router as auth_router
 from backend.app.api.events import router as events_router
 from backend.app.api.news import router as news_router
 from backend.app.api.owners import router as owners_router
+from backend.app.api.dbadmin import router as dbadmin_router
 from backend.app.database import init_db
 from backend.app.scheduler import shutdown_scheduler, start_scheduler
 
@@ -56,6 +57,7 @@ app.include_router(news_router)
 app.include_router(annotations_router)
 app.include_router(events_router)
 app.include_router(owners_router)
+app.include_router(dbadmin_router)
 
 
 @app.get("/", tags=["health"])

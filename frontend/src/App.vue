@@ -476,8 +476,6 @@ watch(navigableDates, (dates) => {
   }
 })
 
-onMounted(() => { Promise.all([refreshAuthStatus(), loadGames(), loadOwnerNames(), loadData()]) })
-
 // ==================== 日期详情侧栏 ====================
 const detailVisible = ref(false)
 const selectedDate = ref('')
@@ -801,17 +799,59 @@ async function onConfirmLogout() {
   logoutDialogVisible.value = false
 }
 
+// ==================== 数据管理彩蛋（PC端 + 已登录 + 连击 logo 6 次） ====================
+const logoClickTimes = ref([])
+
+function onLogoClick() {
+  // 仅 PC 端触发（非触摸设备）
+  const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  if (isTouchDevice) return
+  // 仅已登录管理员
+  if (!isAdmin.value) return
+
+  const now = Date.now()
+  logoClickTimes.value.push(now)
+  // 只保留最近 6 次
+  if (logoClickTimes.value.length > 6) logoClickTimes.value.shift()
+  // 检查 6 次点击是否在 2 秒内
+  if (logoClickTimes.value.length === 6) {
+    const span = logoClickTimes.value[5] - logoClickTimes.value[0]
+    if (span <= 2000) {
+      logoClickTimes.value = []
+      window.open('/dbadmin.html', '_blank')
+    }
+  }
+}
+
 // ==================== 统计切换 ====================
 const statsView = ref('all') // 'all' | 'key'
 const statsExpanded = ref(false)
+
+// ==================== 移动端底部悬浮栏 ====================
+const topBarRef = ref(null)
+const showBottomBar = ref(false)
+
+onMounted(() => {
+  Promise.all([refreshAuthStatus(), loadGames(), loadOwnerNames(), loadData()])
+
+  // 监听顶部切换区域是否滚出视口
+  nextTick(() => {
+    if (!topBarRef.value) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { showBottomBar.value = !entry.isIntersecting },
+      { threshold: 0 }
+    )
+    observer.observe(topBarRef.value)
+  })
+})
 </script>
 
 <template>
   <ElConfigProvider :locale="elLocale">
-  <main class="max-w-7xl mx-auto px-4 md:px-6 pt-6 md:pt-8 pb-12">
+  <main class="max-w-7xl mx-auto px-4 md:px-6 pt-6 md:pt-8 pb-24 md:pb-12">
     <!-- 顶部标题区 -->
     <div class="app-header flex items-center justify-between mb-6 md:mb-8">
-      <img src="./assets/banner_title.png" alt="START 游戏日历" class="app-title-logo h-auto max-h-6 md:max-h-11" style="width: auto; display: block" fetchpriority="high" width="300" height="44" />
+      <img src="./assets/banner_title.png" alt="START 游戏日历" class="app-title-logo h-auto max-h-6 md:max-h-11" style="width: auto; display: block; cursor: default" fetchpriority="high" width="300" height="44" @click="onLogoClick" />
       <div class="auth-control-group">
         <div class="flex items-center gap-2">
           <div class="auth-mode-switch" aria-label="权限模式">
@@ -840,7 +880,7 @@ const statsExpanded = ref(false)
     </div>
 
     <!-- 顶部页面切换 -->
-    <div class="mb-6 md:mb-8 flex justify-center md:justify-start">
+    <div ref="topBarRef" class="mb-6 md:mb-8 flex justify-center md:justify-start">
       <TopSegmentSwitch v-model="activePage" :options="pageOptions" />
     </div>
 
@@ -1047,6 +1087,20 @@ const statsExpanded = ref(false)
       </template>
     </el-dialog>
   </main>
+
+  <!-- 移动端底部悬浮栏（顶部切换区域滚出视口时显示） -->
+  <div
+    class="mobile-bottom-bar md:hidden"
+    :class="{ visible: showBottomBar && !detailVisible }"
+  >
+    <TopSegmentSwitch v-model="activePage" :options="pageOptions" />
+    <button class="bottom-add-btn" :disabled="!isAdmin" @click="onNewEvent">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </button>
+  </div>
+
   </ElConfigProvider>
 </template>
 
@@ -1128,7 +1182,6 @@ const statsExpanded = ref(false)
 
   .app-title-logo {
     max-width: clamp(132px, 46vw, 160px);
-    transform: translateY(-8px);
   }
 
   .auth-control-group > .flex {
@@ -1153,5 +1206,70 @@ const statsExpanded = ref(false)
     padding: 0 8px;
     font-size: 0.75rem;
   }
+}
+
+/* ===== 移动端底部悬浮栏 ===== */
+.mobile-bottom-bar {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(100% + 40px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: transform 250ms cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 100;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .mobile-bottom-bar {
+    display: none !important;
+  }
+}
+
+.mobile-bottom-bar.visible {
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+/* 底部栏里的 pill 加大尺寸 */
+.mobile-bottom-bar :deep(.top-segment-switch) {
+  width: auto;
+  min-width: 240px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+}
+
+.mobile-bottom-bar :deep(.top-segment-item) {
+  height: 38px;
+  font-size: 0.8125rem;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+.bottom-add-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: opacity 150ms, transform 150ms;
+}
+
+.bottom-add-btn:active {
+  transform: scale(0.9);
+}
+
+.bottom-add-btn:disabled {
+  background: #ccc;
+  cursor: default;
+  box-shadow: none;
 }
 </style>

@@ -9,7 +9,7 @@ SQLAlchemy 数据库会话管理。
   - init_db(): 首次运行建表
 """
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from backend.app.config import DATABASE_URL, ENV
@@ -22,6 +22,14 @@ engine = create_engine(
     echo=False,
     connect_args=_connect_args,
 )
+
+# SQLite 默认不启用外键约束，需要每次连接时手动开启（MySQL 无需此操作）
+if DATABASE_URL.startswith("sqlite"):
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys = ON")
+        cursor.close()
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 

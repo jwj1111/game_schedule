@@ -9,9 +9,6 @@ import {
   Plus, Setting, ArrowLeft, ArrowRight,
 } from '@element-plus/icons-vue'
 
-// Element Plus 按需导入：配置 locale（通过 provide 注入）
-import { ElConfigProvider } from 'element-plus'
-
 // ===== 在 Element Plus 初始化前，覆盖根源变量 =====
 const root = document.documentElement
 const vars = {

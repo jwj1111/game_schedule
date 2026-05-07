@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { resolve } from 'path'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -26,8 +27,12 @@ export default defineConfig({
     },
   },
   build: {
-    // 分包策略：将大型依赖拆分为独立 chunk，利用浏览器缓存
+    // 多页面入口
     rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        dbadmin: resolve(__dirname, 'dbadmin.html'),
+      },
       output: {
         manualChunks(id) {
           const normalizedId = id.replace(/\\/g, '/')
