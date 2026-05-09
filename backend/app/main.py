@@ -1,4 +1,4 @@
-"""
+r"""
 FastAPI 应用入口。
 
 启动时：
@@ -6,7 +6,7 @@ FastAPI 应用入口。
   2. 启动 APScheduler 定时任务
 
 用法（项目根目录下）：
-  .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload --port 8000
+  .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --port 8000
 
 接口文档：
   http://localhost:8000/docs

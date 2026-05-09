@@ -9,7 +9,7 @@
 | 文件 | 职责 |
 | --- | --- |
 | `base.py` | `BaseSpider` 爬虫基类：浏览器管理、通用请求、各站点解析器（`parse_xxx`） |
-| `sites.yaml` | 站点清单 + 运行参数 + 调度间隔配置（唯一配置来源） |
+| `sites.yaml` | 站点清单 + 运行参数 + 默认调度间隔配置 |
 | `config.py` | 读取 `sites.yaml`，返回结构化的 `SpiderConfig`（dataclass） |
 | `runner.py` | 批量执行入口：读配置 → 调 BaseSpider → 存 JSON（纯爬取，零 app 依赖） |
 
@@ -94,7 +94,7 @@ self.parser_registry = {
 
 ```yaml
 schedule:
-  interval: 2h    # 爬取间隔
+  interval: 2h    # 默认爬取间隔，可由 .env 的 SPIDER_INTERVAL 覆盖
 ```
 
 **`interval` 格式**：数字 + 单位，最小单位为分钟。
@@ -105,7 +105,7 @@ schedule:
 | `2h` | 每 2 小时 |
 | `1d` | 每天 |
 
-> 爬虫脚本测试时，`interval` 仅被读取和打印，**不驱动定时任务**。接入项目的 APScheduler 后自动生效。
+> 手动运行 `backend.spiders.runner` 时，`interval` 仅用于配置检查/展示，不驱动定时任务；启动 FastAPI 后，APScheduler 会使用该间隔。若 `.env` 配置了 `SPIDER_INTERVAL`，则优先使用 `.env` 的值。
 
 ### `runtime` — 运行参数
 

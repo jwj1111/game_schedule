@@ -1,27 +1,24 @@
 # ===== Web 框架 =====
-fastapi>=0.110.0
-uvicorn[standard]>=0.27.0
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
 
 # ===== ORM / 数据库 =====
-SQLAlchemy>=2.0.0
-PyMySQL>=1.1.0            # 线上 MySQL 驱动（SQLite 自带，无需额外驱动）
+SQLAlchemy==2.0.36
+PyMySQL==1.1.1            # 线上 MySQL 驱动（SQLite 自带，无需额外驱动）
 
 # ===== 配置 =====
-python-dotenv>=1.0.0
-pydantic>=2.5.0
-pydantic-settings>=2.1.0
-PyYAML>=6.0
+python-dotenv==1.0.1
+pydantic==2.10.4
+pydantic-settings==2.7.1
+PyYAML==6.0.2
 
 # ===== 定时任务 =====
-APScheduler>=3.10.0
+APScheduler==3.10.4
 
 # ===== 爬虫 =====
-playwright>=1.40.0
-beautifulsoup4>=4.12.0
+playwright==1.49.1
+beautifulsoup4==4.12.3
 
 # ===== 推送 =====
-requests>=2.31.0
+requests==2.32.3
 
-# ===== 调试辅助（可选，仅本地导出 Excel 用） =====
-pandas>=2.1.0
-openpyxl>=3.1.0

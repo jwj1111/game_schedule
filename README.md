@@ -1,7 +1,7 @@
 # 游戏时间轴看板
 
 多游戏资讯聚合 + 时间轴可视化看板。
-技术栈：**Python 3.9+ / FastAPI / SQLAlchemy 2.0+ / APScheduler / Vite / Vue3 / Tailwind CSS v4**
+技术栈：**Python 3.10+ / FastAPI / SQLAlchemy 2.0+ / APScheduler / Vite / Vue3 / Tailwind CSS v4**
 
 > 开发前请务必通读 [`ai开发规范.md`](./ai开发规范.md)。
 
@@ -40,10 +40,14 @@ game_schedule/
 # 1. 创建虚拟环境并安装依赖（仅首次）
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r backend/requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r backend/requirements.txt
 
-# 2. 启动 FastAPI 服务（在项目根目录执行）
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload --port 8000
+# 2. 首次使用爬虫需安装 Playwright 浏览器内核
+.\.venv\Scripts\python.exe -m playwright install chromium
+
+# 3. 启动 FastAPI 服务（在项目根目录执行）
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --port 8000
 ```
 
 接口文档：<http://localhost:8000/docs>
@@ -51,9 +55,9 @@ pip install -r backend/requirements.txt
 ### 2. 启动前端
 
 ```powershell
-# 1. 安装依赖（仅首次）
+# 1. 按 lock 文件安装依赖（仅首次或依赖变化后）
 cd frontend
-npm install
+npm ci
 
 # 2. 启动开发服务器
 npm run dev

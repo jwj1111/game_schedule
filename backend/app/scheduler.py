@@ -2,7 +2,7 @@
 APScheduler 定时任务管理。
 
 注册两个定时任务：
-  1. 定时爬取 + 预处理 + 入库（间隔由 sites.yaml 的 interval 控制）
+  1. 定时爬取 + 预处理 + 入库（默认间隔由 sites.yaml 控制，可由 .env 的 SPIDER_INTERVAL 覆盖）
   2. 定期过期清理（时间由 .env 的 CLEANUP_DAY + CLEANUP_HOUR 控制）
 """
 
@@ -47,7 +47,7 @@ def start_scheduler():
 
     _scheduler = BackgroundScheduler()
 
-    # 任务 1：定时爬取（间隔由 sites.yaml 控制）
+    # 任务 1：定时爬取（默认间隔由 sites.yaml 控制，可由 .env 的 SPIDER_INTERVAL 覆盖）
     _scheduler.add_job(
         _crawl_and_save,
         trigger="interval",

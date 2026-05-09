@@ -23,7 +23,7 @@
 
 | 项目 | 选型 |
 | --- | --- |
-| 开发语言 | Python 3.9+ |
+| 开发语言 | Python 3.10+（推荐 Python 3.11） |
 | 数据库 | 本地 SQLite、线上 MySQL |
 | ORM 框架 | SQLAlchemy 2.0+ |
 | 后端接口 | FastAPI |
@@ -102,8 +102,8 @@ game_schedule/                  # 项目根（= Git 仓库根）
 | `backend/app/pipeline.py` | 完整流水线：爬取 → 预处理 → 入库 | ✅ |
 | `backend/app/preprocessor.py` | 入库前预处理（筛选 + 日期提取，独立可替换） | ✅ |
 | `backend/app/scheduler.py` | APScheduler 定时任务注册 | ✅ |
-| `backend/app/auth.py` | 轻量管理员认证（密码验证、JWT 签发） | ✅ |
-| `backend/app/notifier.py` | 企业微信机器人推送封装（后续开发） | ✅ |
+| `backend/app/auth.py` | 轻量管理员认证（密码验证、HMAC 签名 Token 签发） | ✅ |
+| `backend/app/notifier.py` | 企业微信机器人推送封装（后续开发，当前未实现） | 规划中 |
 | `backend/spiders/` | 爬虫代码（基类 + 批量爬取入口） | ✅ |
 | `frontend/` | Vite + Vue3 前端工程 | ✅ |
 | `.env.example` | 配置模板 | ✅ |
@@ -124,7 +124,7 @@ game_schedule/                  # 项目根（= Git 仓库根）
 | 本地数据库 | `data/game_schedule.db`（SQLite，自动生成） | `.gitignore` 屏蔽 |
 | 线上数据库 | MySQL（由 docker-compose 管理，数据卷持久化） | 不进 Git |
 | 运行日志 | `logs/` | `.gitignore` 屏蔽 |
-| 临时调试产物 | 就地生成（如 `info.xlsx`），用后自行清理 | `.gitignore` 屏蔽 |
+| 临时调试产物 | 就地生成（如 `data/crawl_preview.json`、临时导出文件），用后自行清理 | `.gitignore` 屏蔽 |
 
 ### 4. 命名与归位原则
 
@@ -156,7 +156,7 @@ logs/
 .DS_Store
 Thumbs.db
 
-# 爬虫临时输出
+# 临时导出文件
 *.xlsx
 
 # 前端构建产物
@@ -166,7 +166,7 @@ frontend/node_modules/
 
 ### 6. 何时创建 `deploy/`
 
-- **第一阶段（本地开发）**：不创建，专注本地 SQLite + FastAPI + HTML 直开。
+- **第一阶段（本地开发）**：不创建，专注本地 SQLite + FastAPI + Vite 开发服务器。
 - **第二阶段（首次上线前）**：一次性创建 `Dockerfile`、`docker-compose.yml`、`nginx.conf`，此后按迭代规范维护，**禁止随业务代码频繁改动**。
 
 ---
@@ -197,7 +197,7 @@ frontend/node_modules/
   - 资讯速览查询（当天、未来15天、过去7天）
   - 游戏名与负责人列表查询
 - 编写管理员认证接口：
-  - 密码验证登录与 JWT 签发
+  - 密码验证登录与 HMAC 签名 Bearer Token 签发
 - 编写数据管理接口：
   - 爬虫数据标注（优先级、别名、资源位、隐藏）
   - 自定义事件 CRUD
@@ -224,7 +224,7 @@ frontend/node_modules/
 #### 5. 功能联调
 
 - 本地完成 爬虫 → 数据库 → 后端接口 → 前端页面 全链路测试
-- 验证定时任务、数据筛选、推送功能正常运行
+- 验证定时任务、数据筛选等已实现功能正常运行
 - 所有业务逻辑无 BUG 后，再进入下一阶段
 
 ---

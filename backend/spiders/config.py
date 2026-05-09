@@ -5,15 +5,19 @@
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
 
+from dotenv import load_dotenv
 import yaml
 
 # 默认配置文件路径：与本模块同目录下的 sites.yaml
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("sites.yaml")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ENV_PATH = PROJECT_ROOT / ".env"
 
 # ---------------- 间隔表达式解析 ----------------
 # 支持的单位：m(分钟) / h(小时) / d(天)；最小单位为分钟
@@ -120,8 +124,9 @@ def load_sites_config(path: Path | str | None = None) -> SpiderConfig:
         raw = yaml.safe_load(f) or {}
 
     # schedule
+    _ = load_dotenv(ENV_PATH, override=False)
     sched_raw = raw.get("schedule") or {}
-    interval_raw = sched_raw.get("interval", "2h")
+    interval_raw = os.getenv("SPIDER_INTERVAL", "").strip() or sched_raw.get("interval", "2h")
     schedule = ScheduleConfig(
         interval_seconds=parse_duration(interval_raw),
     )

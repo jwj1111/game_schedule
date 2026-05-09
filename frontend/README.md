@@ -10,6 +10,7 @@ Vite + Vue 3 + Element Plus + Tailwind CSS 构建的游戏排期日历看板。
 | --- | --- |
 | `vite.config.js` | Vite 配置：开发代理、Element Plus 按需导入、构建分包 |
 | `package.json` | 依赖与脚本 |
+| `dbadmin.html` | 数据库管理彩蛋页面入口 |
 | `src/main.js` | 应用入口：Element Plus 主题变量覆盖、图标注册、locale 注入 |
 | `src/App.vue` | 根组件：数据加载、筛选逻辑、月份导航、子组件编排 |
 | `src/style.css` | 全局样式：Tailwind 导入、动画关键帧、Element Plus 覆盖 |
@@ -19,6 +20,7 @@ Vite + Vue 3 + Element Plus + Tailwind CSS 构建的游戏排期日历看板。
 | `src/utils/message.js` | 工具函数：统一消息提示封装 |
 | `src/assets/` | 静态资源（banner 图等） |
 | `src/components/` | 业务组件（见下方） |
+| `src/pages/DbAdmin.vue` | 数据库管理彩蛋页面（需管理员登录后从主页面触发） |
 
 ### 组件清单
 
@@ -43,7 +45,12 @@ Vite + Vue 3 + Element Plus + Tailwind CSS 构建的游戏排期日历看板。
 
 ## 常用命令
 
+建议使用 Node.js `20.19+` 或 `22.12+`，并使用 `package-lock.json` 配套的 `npm ci` 安装依赖。
+
 ```powershell
+# 安装依赖（按 package-lock.json）
+npm ci
+
 # 开发（热更新，自动代理后端 /api → localhost:8000）
 npm run dev
 
