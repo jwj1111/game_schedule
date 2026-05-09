@@ -29,7 +29,7 @@ if ENV == "prod":
     _port = os.getenv("MYSQL_PORT", "3306")
     _user = os.getenv("MYSQL_USER", "root")
     _pwd = os.getenv("MYSQL_PASSWORD", "")
-    _db = os.getenv("MYSQL_DB", "game_schedule")
+    _db = os.getenv("MYSQL_DATABASE", "game_schedule")
     DATABASE_URL = f"mysql+pymysql://{_user}:{_pwd}@{_host}:{_port}/{_db}?charset=utf8mb4"
 else:
     _sqlite_path = os.getenv("SQLITE_PATH", "./data/game_schedule.db")

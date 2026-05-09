@@ -1,16 +1,12 @@
-version: "3.8"
-
 services:
   # ========== MySQL 数据库 ==========
   mysql:
     image: mysql:8.0
     container_name: game_schedule_mysql
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DB:-game_schedule}
-      MYSQL_USER: ${MYSQL_USER:-app}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       TZ: Asia/Shanghai
     ports:
       - "3306:3306"
