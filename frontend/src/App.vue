@@ -1234,7 +1234,7 @@ onMounted(() => {
 /* ===== 移动端底部悬浮栏 ===== */
 .mobile-bottom-bar {
   position: fixed;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%) translateY(calc(100% + 40px));
   display: flex;
@@ -1259,14 +1259,14 @@ onMounted(() => {
 /* 底部栏里的 pill 加大尺寸 */
 .mobile-bottom-bar :deep(.top-segment-switch) {
   width: auto;
-  min-width: 240px;
+  min-width: 260px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.12);
 }
 
 .mobile-bottom-bar :deep(.top-segment-item) {
-  height: 38px;
-  font-size: 0.8125rem;
-  padding: 0 16px;
+  height: 44px;
+  font-size: 0.875rem;
+  padding: 0 20px;
   white-space: nowrap;
 }
 
@@ -1275,8 +1275,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 50%;
   background: #111;

@@ -47,6 +47,31 @@ function getSegmentMetrics() {
   return segmentWidth > 0
 }
 
+// 安卓兼容：拖拽期间临时阻止浏览器接管水平手势
+let horizontalConfirmed = false
+let dragStartY_touch = 0
+
+function onDragTouchMove(e) {
+  if (!dragging.value) return
+  const dx = Math.abs(e.touches[0].clientX - dragStartX)
+  // 首次移动超过 4px 且水平方向占主导时确认为拖拽
+  if (!horizontalConfirmed && dx > 4) {
+    horizontalConfirmed = true
+  }
+  if (horizontalConfirmed) {
+    e.preventDefault()
+  }
+}
+
+function addDragTouchListener(el) {
+  horizontalConfirmed = false
+  el.addEventListener('touchmove', onDragTouchMove, { passive: false })
+}
+
+function removeDragTouchListener(el) {
+  el.removeEventListener('touchmove', onDragTouchMove)
+}
+
 function onPointerDown(event) {
   if (!canDrag.value || event.pointerType === 'mouse' || !getSegmentMetrics()) return
   dragging.value = true
@@ -54,6 +79,7 @@ function onPointerDown(event) {
   dragStartTranslate = activeIndex.value * segmentWidth
   dragTranslate.value = dragStartTranslate
   event.currentTarget.setPointerCapture?.(event.pointerId)
+  addDragTouchListener(event.currentTarget)
 }
 
 function onPointerMove(event) {
@@ -78,6 +104,7 @@ function onPointerUp(event) {
     }, 120)
   }
   event.currentTarget.releasePointerCapture?.(event.pointerId)
+  removeDragTouchListener(event.currentTarget)
 }
 
 onMounted(() => {
