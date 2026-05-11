@@ -123,8 +123,8 @@ function onTouchStart(e) {
 function onTouchEnd(e) {
   const dx = e.changedTouches[0].clientX - touchStartX
   const dy = Math.abs(e.changedTouches[0].clientY - touchStartY)
-  // 右滑超过 80px 且水平距离大于垂直距离（防误触）
-  if (dx > 120 && dx > dy * 1.5) {
+  // 右滑超过 70px 且水平距离大于垂直距离（防误触）
+  if (dx > 70 && dx > dy * 1.2) {
     emit('close')
   }
 }

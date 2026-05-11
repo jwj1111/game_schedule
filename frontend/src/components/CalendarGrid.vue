@@ -11,10 +11,30 @@ const props = defineProps({
 })
 
 
-const emit = defineEmits(['select-date', 'add-event'])
+const emit = defineEmits(['select-date', 'add-event', 'prev-month', 'next-month'])
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 const today = dayjs().format('YYYY-MM-DD')
+
+// ==================== 移动端左右滑动切换月份 ====================
+let touchStartX = 0
+let touchStartY = 0
+
+function onGridTouchStart(e) {
+  touchStartX = e.touches[0].clientX
+  touchStartY = e.touches[0].clientY
+}
+
+function onGridTouchEnd(e) {
+  const dx = e.changedTouches[0].clientX - touchStartX
+  const dy = Math.abs(e.changedTouches[0].clientY - touchStartY)
+  const absDx = Math.abs(dx)
+  // 水平滑动超过 60px 且水平距离大于垂直距离
+  if (absDx > 60 && absDx > dy * 1.2) {
+    if (dx < 0) emit('next-month')  // 左滑 → 下一月
+    else emit('prev-month')          // 右滑 → 上一月
+  }
+}
 
 const priorityClass = {
   3: 'bg-red-100 text-red-700 border-red-200',
@@ -116,7 +136,14 @@ function getPriorityClass(p) {
     </div>
 
     <!-- 日期网格 -->
-    <div class="grid grid-cols-7" style="border-left: 1px solid #e5e5e5" role="grid" aria-label="日历">
+    <div
+      class="grid grid-cols-7"
+      style="border-left: 1px solid #e5e5e5"
+      role="grid"
+      aria-label="日历"
+      @touchstart.passive="onGridTouchStart"
+      @touchend.passive="onGridTouchEnd"
+    >
       <div
         v-for="(day, idx) in processedDays"
         :key="idx"

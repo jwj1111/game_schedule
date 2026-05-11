@@ -827,6 +827,22 @@ function onLogoClick() {
 const statsView = ref('all') // 'all' | 'key'
 const statsExpanded = ref(false)
 
+// 移动端左右滑动切换统计视图
+let statsTouchStartX = 0
+let statsTouchStartY = 0
+function onStatsTouchStart(e) {
+  statsTouchStartX = e.touches[0].clientX
+  statsTouchStartY = e.touches[0].clientY
+}
+function onStatsTouchEnd(e) {
+  const dx = e.changedTouches[0].clientX - statsTouchStartX
+  const dy = Math.abs(e.changedTouches[0].clientY - statsTouchStartY)
+  const absDx = Math.abs(dx)
+  if (absDx > 60 && absDx > dy * 1.2) {
+    statsView.value = dx < 0 ? 'key' : 'all'
+  }
+}
+
 // ==================== 移动端底部悬浮栏 ====================
 const topBarRef = ref(null)
 const showBottomBar = ref(false)
@@ -928,6 +944,8 @@ onMounted(() => {
         :can-edit="isAdmin"
         @select-date="onSelectDate"
         @add-event="onAddEventForDate"
+        @prev-month="prevMonth"
+        @next-month="nextMonth"
       />
     </div>
 
@@ -968,7 +986,12 @@ onMounted(() => {
           </button>
         </div>
         <!-- 展开时显示详细统计 -->
-        <div v-if="statsExpanded" style="margin-top: 16px">
+        <div
+          v-if="statsExpanded"
+          style="margin-top: 16px"
+          @touchstart.passive="onStatsTouchStart"
+          @touchend.passive="onStatsTouchEnd"
+        >
           <StatsCard
             v-if="statsView === 'all'"
             title="全部事件"
