@@ -8,6 +8,10 @@ APScheduler 定时任务管理。
 
 from __future__ import annotations
 
+import time as _time
+from collections import deque
+from datetime import datetime
+
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from backend.app.config import CLEANUP_DAY, CLEANUP_HOUR, DATA_RETENTION_DAYS
@@ -18,20 +22,49 @@ from backend.spiders.config import format_duration, load_sites_config
 
 _scheduler: BackgroundScheduler | None = None
 
+# 最近执行记录（最多 20 条，新的在前）
+recent_runs: deque[dict] = deque(maxlen=20)
+
+
+def _record_run(job: str, status: str, duration: float, detail: str):
+    """记录一次任务执行结果。"""
+    recent_runs.appendleft({
+        "job": job,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "status": status,
+        "duration": round(duration, 1),
+        "detail": detail,
+    })
+
 
 def _crawl_and_save():
     """定时任务回调：完整流水线。"""
     print("\n[定时任务] 开始爬取...")
-    run_pipeline()
-    print("[定时任务] 爬取入库完成")
+    start = _time.time()
+    try:
+        run_pipeline()
+        duration = _time.time() - start
+        _record_run("crawl", "success", duration, f"爬取入库完成，耗时 {duration:.1f}s")
+        print("[定时任务] 爬取入库完成")
+    except Exception as e:
+        duration = _time.time() - start
+        _record_run("crawl", "failed", duration, str(e)[:200])
+        print(f"[定时任务] 爬取失败: {e}")
 
 
 def _cleanup():
     """定时任务回调：过期清理。"""
     print("\n[定时任务] 开始过期清理...")
+    start = _time.time()
     db = SessionLocal()
     try:
         cleanup_expired(db, DATA_RETENTION_DAYS)
+        duration = _time.time() - start
+        _record_run("cleanup", "success", duration, f"过期清理完成，耗时 {duration:.1f}s")
+    except Exception as e:
+        duration = _time.time() - start
+        _record_run("cleanup", "failed", duration, str(e)[:200])
+        print(f"[定时任务] 清理失败: {e}")
     finally:
         db.close()
 
@@ -81,3 +114,20 @@ def shutdown_scheduler():
         _scheduler.shutdown(wait=False)
         _scheduler = None
         print("[调度器] 已关闭")
+
+
+def get_scheduler_info() -> dict:
+    """获取调度器运行状态（供 API 层调用）。"""
+    info = {"running": False, "jobs": [], "recent_runs": list(recent_runs)}
+    if _scheduler and _scheduler.running:
+        info["running"] = True
+        for job in _scheduler.get_jobs():
+            next_run_str = None
+            if job.next_run_time:
+                next_run_str = job.next_run_time.strftime("%Y-%m-%d %H:%M")
+            info["jobs"].append({
+                "id": job.id,
+                "name": job.name,
+                "next_run": next_run_str,
+            })
+    return info

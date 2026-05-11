@@ -13,11 +13,13 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import inspect as sa_inspect, select, insert, update, delete, func
-from sqlalchemy import Boolean, Date, DateTime, Integer, Float, JSON
+from sqlalchemy import Boolean, Date, DateTime, Integer, Float, JSON, MetaData, Table
 from sqlalchemy.orm import Session
 
 from backend.app.auth import require_admin
+from backend.app.config import ENV, DATA_RETENTION_DAYS
 from backend.app.database import engine, get_db, Base
+from backend.app.scheduler import get_scheduler_info
 
 router = APIRouter(prefix="/api/dbadmin", tags=["dbadmin"], dependencies=[Depends(require_admin)])
 
@@ -157,7 +159,6 @@ def get_table_rows(
     meta = Base.metadata
     if table_name not in meta.tables:
         # 表不在 ORM 声明中，动态反射
-        from sqlalchemy import MetaData, Table
         temp_meta = MetaData()
         table = Table(table_name, temp_meta, autoload_with=engine)
     else:
@@ -219,7 +220,6 @@ def create_row(
 
     meta = Base.metadata
     if table_name not in meta.tables:
-        from sqlalchemy import MetaData, Table
         temp_meta = MetaData()
         table = Table(table_name, temp_meta, autoload_with=engine)
     else:
@@ -258,7 +258,6 @@ def update_row(
 
     meta = Base.metadata
     if table_name not in meta.tables:
-        from sqlalchemy import MetaData, Table
         temp_meta = MetaData()
         table = Table(table_name, temp_meta, autoload_with=engine)
     else:
@@ -305,7 +304,6 @@ def delete_row(
 
     meta = Base.metadata
     if table_name not in meta.tables:
-        from sqlalchemy import MetaData, Table
         temp_meta = MetaData()
         table = Table(table_name, temp_meta, autoload_with=engine)
     else:
@@ -328,3 +326,75 @@ def delete_row(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"删除失败: {e}")
+
+
+@router.post("/tables/{table_name}/rows/batch-delete")
+def batch_delete_rows(
+    table_name: str,
+    body: dict[str, Any],
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """批量删除多行数据（按主键 id 列表）。"""
+    ids = body.get("ids", [])
+    if not ids or not isinstance(ids, list):
+        raise HTTPException(status_code=400, detail="ids 必须是非空数组")
+    if len(ids) > 500:
+        raise HTTPException(status_code=400, detail="单次最多删除 500 条")
+
+    inspector = sa_inspect(engine)
+    if table_name not in inspector.get_table_names():
+        raise HTTPException(status_code=404, detail=f"表 '{table_name}' 不存在")
+
+    meta = Base.metadata
+    if table_name not in meta.tables:
+        temp_meta = MetaData()
+        table = Table(table_name, temp_meta, autoload_with=engine)
+    else:
+        table = meta.tables[table_name]
+
+    pk_cols = [c for c in table.columns if c.primary_key]
+    if not pk_cols:
+        raise HTTPException(status_code=400, detail="该表没有主键，无法批量删除")
+
+    pk_col = pk_cols[0]
+
+    try:
+        result = db.execute(delete(table).where(pk_col.in_(ids)))
+        db.commit()
+        return {"success": True, "deleted": result.rowcount}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"批量删除失败: {e}")
+
+
+@router.get("/status")
+def system_status(db: Session = Depends(get_db)) -> dict[str, Any]:
+    """系统运行状态：调度器 + 数据库 + 服务器信息。"""
+
+    # ---- 调度器状态 ----
+    scheduler_info = get_scheduler_info()
+
+    # ---- 数据库各表行数 ----
+    table_counts = {}
+    inspector = sa_inspect(engine)
+    for tname in inspector.get_table_names():
+        meta = Base.metadata
+        if tname in meta.tables:
+            table = meta.tables[tname]
+        else:
+            temp_meta = MetaData()
+            table = Table(tname, temp_meta, autoload_with=engine)
+        count = db.execute(select(func.count()).select_from(table)).scalar() or 0
+        table_counts[tname] = count
+
+    # ---- 服务器信息 ----
+    server_info = {
+        "env": ENV,
+        "data_retention_days": DATA_RETENTION_DAYS,
+    }
+
+    return {
+        "scheduler": scheduler_info,
+        "database": table_counts,
+        "server": server_info,
+    }

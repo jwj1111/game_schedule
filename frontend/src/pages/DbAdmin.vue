@@ -135,6 +135,7 @@ async function selectTable(tableName) {
   page.value = 1
   sortBy.value = null
   sortOrder.value = 'asc'
+  selectedRows.value = []
   await Promise.all([loadSchema(tableName), loadRows()])
 }
 
@@ -257,9 +258,65 @@ async function onDeleteRow(row) {
   }
 }
 
+// ==================== 批量删除 ====================
+const selectedRows = ref([])
+
+function onSelectionChange(rows) {
+  selectedRows.value = rows
+}
+
+async function onBatchDelete() {
+  const pk = tableSchema.value.find(c => c.primary_key)
+  if (!pk) { ElMessage.error('无法确定主键'); return }
+  const ids = selectedRows.value.map(r => r[pk.name])
+  if (!ids.length) return
+  try {
+    await ElMessageBox.confirm(
+      `确定删除选中的 ${ids.length} 条记录？此操作不可撤销。`,
+      '批量删除',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch { return }
+  try {
+    const res = await request(`/tables/${encodeURIComponent(activeTable.value)}/rows/batch-delete`, {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    })
+    if (res) {
+      ElMessage.success(`成功删除 ${res.deleted} 条记录`)
+      selectedRows.value = []
+      await loadRows()
+    }
+  } catch (e) {
+    ElMessage.error('批量删除失败: ' + e.message)
+  }
+}
+
+// ==================== 系统状态 ====================
+const statusData = ref(null)
+const statusLoading = ref(false)
+
+async function loadStatus() {
+  statusLoading.value = true
+  try {
+    const res = await request('/status')
+    if (res) statusData.value = res
+  } catch (e) {
+    ElMessage.error('加载系统状态失败: ' + e.message)
+  } finally {
+    statusLoading.value = false
+  }
+}
+
+function selectStatus() {
+  activeTable.value = '__status__'
+  loadStatus()
+}
+
 // ==================== 刷新 ====================
 function refresh() {
-  if (activeTable.value) loadRows()
+  if (activeTable.value === '__status__') loadStatus()
+  else if (activeTable.value) loadRows()
 }
 
 // ==================== 返回主页 ====================
@@ -330,7 +387,18 @@ onMounted(loadTables)
     <div class="dbadmin-body">
       <!-- 左侧表列表 -->
       <aside class="table-sidebar">
-        <div class="sidebar-title">数据表</div>
+        <div class="sidebar-title">系统</div>
+        <div
+          class="table-item"
+          :class="{ active: activeTable === '__status__' }"
+          @click="selectStatus"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+          <span>系统状态</span>
+        </div>
+        <div class="sidebar-title" style="margin-top: 12px">数据表</div>
         <div
           v-for="t in tables"
           :key="t"
@@ -358,12 +426,101 @@ onMounted(loadTables)
           <p>请从左侧选择一个数据表</p>
         </div>
 
+        <!-- 系统状态面板 -->
+        <div v-else-if="activeTable === '__status__'" v-loading="statusLoading">
+          <div class="schema-bar">
+            <div class="schema-bar-left">
+              <span class="schema-table-name">系统状态</span>
+            </div>
+            <div class="schema-bar-right">
+              <button class="action-btn" @click="loadStatus">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 4v6h6M23 20v-6h-6"/>
+                  <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+                </svg>
+                刷新
+              </button>
+            </div>
+          </div>
+
+          <div v-if="statusData" class="status-panel">
+            <!-- 摘要行 -->
+            <div class="status-summary">
+              <div class="summary-item">
+                <span class="summary-label">环境</span>
+                <span class="summary-value">{{ statusData.server.env }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">数据保留</span>
+                <span class="summary-value">{{ statusData.server.data_retention_days }} 天</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">调度器</span>
+                <span class="summary-value" :style="{ color: statusData.scheduler.running ? '#34c759' : '#ef4444' }">
+                  {{ statusData.scheduler.running ? '运行中' : '未启动' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 调度任务 + 数据库 -->
+            <div class="status-grid-compact">
+              <div class="status-card">
+                <div class="status-card-title">调度任务</div>
+                <div v-for="job in statusData.scheduler.jobs" :key="job.id" class="status-row">
+                  <span class="status-label">{{ job.name }}</span>
+                  <span class="status-value">{{ job.next_run || '无计划' }}</span>
+                </div>
+              </div>
+              <div class="status-card">
+                <div class="status-card-title">数据库</div>
+                <div v-for="(count, tname) in statusData.database" :key="tname" class="status-row">
+                  <span class="status-label">{{ tname }}</span>
+                  <span class="status-value">{{ count }} 条</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 最近执行记录 -->
+            <div class="status-card">
+              <div class="status-card-title">最近执行记录</div>
+              <div v-if="!statusData.scheduler.recent_runs?.length" style="color: #ccc; font-size: 12px">
+                暂无执行记录（服务重启后清空）
+              </div>
+              <div v-else class="run-log-list">
+                <div
+                  v-for="(run, idx) in statusData.scheduler.recent_runs"
+                  :key="idx"
+                  class="run-log-item"
+                >
+                  <span class="run-log-status" :style="{ color: run.status === 'success' ? '#34c759' : '#ef4444' }">
+                    {{ run.status === 'success' ? '✓' : '✗' }}
+                  </span>
+                  <span class="run-log-job">{{ run.job === 'crawl' ? '爬取' : '清理' }}</span>
+                  <span class="run-log-time">{{ run.time }}</span>
+                  <span class="run-log-duration">{{ run.duration }}s</span>
+                  <span class="run-log-detail" :title="run.detail">{{ run.detail }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <template v-else>
           <!-- 表结构概览 -->
           <div class="schema-bar">
             <div class="schema-bar-left">
               <span class="schema-table-name">{{ activeTable }}</span>
               <span class="schema-count">{{ total }} 条记录</span>
+              <button
+                v-if="selectedRows.length"
+                class="action-btn batch-delete-btn"
+                @click="onBatchDelete"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+                删除选中 ({{ selectedRows.length }})
+              </button>
             </div>
             <div class="schema-bar-right">
               <el-popover trigger="hover" placement="bottom-start" :width="420">
@@ -418,8 +575,10 @@ onMounted(loadTables)
               max-height="calc(100vh - 230px)"
               style="width: 100%"
               @sort-change="onSortChange"
+              @selection-change="onSelectionChange"
               :default-sort="sortBy ? { prop: sortBy, order: sortOrder === 'desc' ? 'descending' : 'ascending' } : {}"
             >
+              <el-table-column type="selection" width="42" />
               <el-table-column
                 v-for="col in tableSchema"
                 :key="col.name"
@@ -729,6 +888,135 @@ body {
   background: #f5f5f5;
   color: #111;
   border-color: #ccc;
+}
+
+.batch-delete-btn {
+  color: #e74c3c !important;
+  border-color: #fecaca !important;
+  background: #fef2f2 !important;
+}
+.batch-delete-btn:hover {
+  color: #fff !important;
+  background: #e74c3c !important;
+  border-color: #e74c3c !important;
+}
+
+/* ===== 系统状态面板 ===== */
+.status-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.status-summary {
+  display: flex;
+  gap: 24px;
+  padding: 12px 16px;
+  background: #fafafa;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+}
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.summary-label {
+  color: #999;
+}
+.summary-value {
+  color: #111;
+  font-weight: 600;
+}
+
+.status-grid-compact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.status-card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 16px;
+}
+.status-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.status-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.status-label {
+  color: #999;
+  flex-shrink: 0;
+}
+.status-value {
+  color: #555;
+  text-align: right;
+  word-break: break-all;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 执行记录 ===== */
+.run-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.run-log-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: #fafafa;
+}
+.run-log-status {
+  flex-shrink: 0;
+  font-weight: 700;
+  width: 16px;
+  text-align: center;
+}
+.run-log-job {
+  flex-shrink: 0;
+  color: #555;
+  font-weight: 600;
+  width: 32px;
+}
+.run-log-time {
+  flex-shrink: 0;
+  color: #999;
+  font-variant-numeric: tabular-nums;
+  width: 130px;
+}
+.run-log-duration {
+  flex-shrink: 0;
+  color: #999;
+  font-variant-numeric: tabular-nums;
+  width: 50px;
+  text-align: right;
+}
+.run-log-detail {
+  color: #777;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 
 /* ===== 表结构弹出 ===== */

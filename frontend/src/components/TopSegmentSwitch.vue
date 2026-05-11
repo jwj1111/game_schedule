@@ -49,7 +49,6 @@ function getSegmentMetrics() {
 
 // 安卓兼容：拖拽期间临时阻止浏览器接管水平手势
 let horizontalConfirmed = false
-let dragStartY_touch = 0
 
 function onDragTouchMove(e) {
   if (!dragging.value) return
