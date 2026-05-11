@@ -33,6 +33,7 @@ services:
       ENV: prod
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
+      TZ: Asia/Shanghai
     depends_on:
       mysql:
         condition: service_healthy

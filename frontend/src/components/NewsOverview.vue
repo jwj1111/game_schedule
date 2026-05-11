@@ -30,8 +30,9 @@ const sevenDaysLater = computed(() => dayjs().add(6, 'day').format('YYYY-MM-DD')
 const fifteenDaysLater = computed(() => dayjs().add(14, 'day').format('YYYY-MM-DD'))
 const expiredStartDate = computed(() => dayjs().subtract(7, 'day').format('YYYY-MM-DD'))
 
-function isCreatedToday(item) {
-  return String(item.created_at || '').slice(0, 10) === today.value
+function isCreatedWithin24h(item) {
+  const createdAt = dayjs(item.created_at)
+  return createdAt.isValid() && dayjs().diff(createdAt, 'hour') < 24
 }
 
 function isKeyUnconfigured(item) {
@@ -39,7 +40,7 @@ function isKeyUnconfigured(item) {
 }
 
 const latestItems = computed(() => props.items
-  .filter(item => !item.hidden && isCreatedToday(item))
+  .filter(item => !item.hidden && isCreatedWithin24h(item))
   .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
 )
 
@@ -78,7 +79,7 @@ const expiredItems = computed(() => props.items
 
     <div class="overview-card" v-loading="props.loading">
       <div class="overview-card-head">
-        <p v-if="activeSection === 'latest'" class="overview-desc">当天入库的事项</p>
+        <p v-if="activeSection === 'latest'" class="overview-desc">过去 24 小时入库的事项</p>
         <p v-else-if="activeSection === 'due'" class="overview-desc">15 天内未配置资源位的重点事项</p>
         <p v-else class="overview-desc">过去 7 天内仍未配置的重点事项</p>
         <el-button class="overview-refresh-button" size="small" :loading="props.loading" aria-label="刷新" @click="emit('refresh')">
