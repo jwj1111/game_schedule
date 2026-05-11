@@ -53,7 +53,7 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | --- | --- | --- |
 | `/` | GET | 健康检查 |
 | `/api/calendar` | GET | 统一日历查询（合并爬虫+标注+事件），按月加载 |
-| `/api/overview` | GET | 资讯速览查询（当天+未来15天+过去7天相关事项） |
+| `/api/overview` | GET | 资讯速览查询（过去24小时入库+未来15天+过去7天相关事项） |
 | `/api/games` | GET | 所有游戏名（爬虫+事件+负责人三表去重） |
 | `/api/owner-names` | GET | 所有负责人姓名（去重，供筛选下拉框使用） |
 | `/api/hidden` | GET | 所有已隐藏的爬虫数据（用于恢复显示，需管理员权限） |
@@ -108,6 +108,8 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `/api/dbadmin/tables/{table}/schema` | GET | 表结构 |
 | `/api/dbadmin/tables/{table}/rows` | GET/POST | 查询 / 新增行 |
 | `/api/dbadmin/tables/{table}/rows/{id}` | PUT/DELETE | 修改 / 删除行 |
+| `/api/dbadmin/tables/{table}/rows/batch-delete` | POST | 批量删除（body: `{"ids": [...]}`, 上限500条） |
+| `/api/dbadmin/status` | GET | 系统运行状态（调度器+数据库+服务器） |
 
 ---
 

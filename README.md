@@ -20,7 +20,7 @@ game_schedule/
 │   ├── src/          # 源码目录
 │   ├── package.json  # 前端依赖
 │   └── vite.config.js# Vite 配置
-├── deploy/           # Docker 部署配置（第二阶段再建）
+├── deploy/           # Docker 部署配置
 ├── data/             # 本地 SQLite（Git 忽略）
 ├── logs/             # 运行日志（Git 忽略）
 ├── .venv/            # Python 虚拟环境（Git 忽略）
@@ -69,7 +69,7 @@ npm run dev
 
 ## 迭代部署
 
-本地修改 → `git commit` → `git push` → 服务器 `git pull` → `docker-compose up -d --build`。
+本地修改 → `git commit` → `git push` → 服务器 `git pull` → `docker compose up -d --build`。
 详见 `ai开发规范.md` 第五章。
 
 ---
