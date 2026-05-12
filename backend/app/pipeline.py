@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+from backend.app.config import DATA_RETENTION_DAYS
 from backend.app.crud import bulk_insert_new
 from backend.app.database import SessionLocal, init_db
 from backend.app.preprocessor import preprocess
@@ -34,7 +35,7 @@ def run_pipeline() -> None:
     # 3. 入库（去重）
     db = SessionLocal()
     try:
-        bulk_insert_new(db, filtered_items)
+        bulk_insert_new(db, filtered_items, retention_days=DATA_RETENTION_DAYS)
     finally:
         db.close()
 

@@ -21,13 +21,22 @@ from backend.app.models import GameNews, GameOwner, UserAnnotation, UserEvent
 
 # ==================== 爬虫数据 ====================
 
-def bulk_insert_new(db: Session, items: List[Dict[str, Any]]) -> int:
-    """批量去重入库（game + info 联合唯一）。"""
+def bulk_insert_new(db: Session, items: List[Dict[str, Any]], retention_days: int = 0) -> int:
+    """批量去重入库（game + info 联合唯一）。超过保留天数的过期数据不入库。"""
     if not items:
         return 0
 
+    # 计算过期截止日期（retention_days=0 表示不过滤）
+    cutoff = date.today() - timedelta(days=retention_days) if retention_days > 0 else None
+
     inserted = 0
+    skipped_expired = 0
     for item in items:
+        # 跳过已过期的数据
+        if cutoff and item["online_date"] < cutoff:
+            skipped_expired += 1
+            continue
+
         exists = db.query(GameNews.id).filter(
             and_(GameNews.game == item["game"], GameNews.info == item["info"])
         ).first()
@@ -46,7 +55,8 @@ def bulk_insert_new(db: Session, items: List[Dict[str, Any]]) -> int:
     if inserted > 0:
         db.commit()
 
-    print(f"入库完成：输入 {len(items)} 条，新增 {inserted} 条，跳过 {len(items) - inserted} 条（已存在）")
+    skipped_dup = len(items) - inserted - skipped_expired
+    print(f"入库完成：输入 {len(items)} 条，新增 {inserted} 条，跳过重复 {skipped_dup} 条，跳过过期 {skipped_expired} 条")
     return inserted
 
 
