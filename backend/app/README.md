@@ -230,5 +230,6 @@ def preprocess(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 ```
 
 - **去重**：`game_news` 按 `game + info` 联合唯一
+- **过期过滤**：`online_date` 超过 `DATA_RETENTION_DAYS` 的数据不入库（防止清理后又被爬回）
 - **级联**：删除 `game_news` 记录时，关联的 `user_annotation` 自动删除
 - **双环境**：同一份 ORM 代码，SQLite / MySQL 自动切换
