@@ -21,6 +21,7 @@ engine = create_engine(
     DATABASE_URL,
     echo=False,
     connect_args=_connect_args,
+    pool_recycle=3600,  # 连接空闲超过1小时自动回收，防止MySQL断连
 )
 
 # SQLite 默认不启用外键约束，需要每次连接时手动开启（MySQL 无需此操作）
