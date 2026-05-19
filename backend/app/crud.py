@@ -63,22 +63,31 @@ def bulk_insert_new(db: Session, items: List[Dict[str, Any]], retention_days: in
 def cleanup_expired(db: Session, retention_days: int) -> int:
     """
     清理过期数据。
-    GameNews 删除时，关联的 UserAnnotation 会被 ORM cascade 自动删除。
+    - GameNews 删除时，关联的 UserAnnotation 会被 ORM cascade 自动删除。
+    - UserEvent 按 event_date 过期删除。
     """
     if retention_days <= 0:
         print("数据保留策略：永不删除，跳过清理")
         return 0
 
     cutoff = date.today() - timedelta(days=retention_days)
-    # 先查出要删的记录，让 ORM cascade 生效
-    expired = db.query(GameNews).filter(GameNews.online_date < cutoff).all()
-    count = len(expired)
-    for record in expired:
+
+    # 清理过期爬取数据（级联删除标注）
+    expired_news = db.query(GameNews).filter(GameNews.online_date < cutoff).all()
+    news_count = len(expired_news)
+    for record in expired_news:
         db.delete(record)
+
+    # 清理过期手动事件
+    expired_events = db.query(UserEvent).filter(UserEvent.event_date < cutoff).all()
+    event_count = len(expired_events)
+    for record in expired_events:
+        db.delete(record)
+
     db.commit()
 
-    print(f"过期清理完成：删除 online_date < {cutoff} 的记录 {count} 条（含关联标注）")
-    return count
+    print(f"过期清理完成：删除爬取 {news_count} 条（含标注），手动事件 {event_count} 条（cutoff={cutoff}）")
+    return news_count + event_count
 
 
 # ==================== 标注 ====================
