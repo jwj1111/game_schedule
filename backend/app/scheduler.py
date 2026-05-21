@@ -15,6 +15,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from backend.app.config import CLEANUP_DAY, CLEANUP_HOUR, DATA_RETENTION_DAYS
+from backend.app.config import PUSH_TIMES, WECOM_WEBHOOK
 from backend.app.crud import cleanup_expired
 from backend.app.database import SessionLocal
 from backend.app.pipeline import run_pipeline
@@ -102,9 +103,41 @@ def start_scheduler():
         max_instances=1,
     )
 
+    # 任务 3：企微定时推送（PUSH_TIMES 为空或 WECOM_WEBHOOK 为空时跳过）
+    push_schedule_desc = ""
+    if WECOM_WEBHOOK and PUSH_TIMES:
+        from backend.app.notifier import push_notify
+
+        def _push_with_record():
+            """推送回调：带执行记录。"""
+            start = _time.time()
+            try:
+                push_notify()
+                duration = _time.time() - start
+                _record_run("push", "success", duration, f"推送完成，耗时 {duration:.1f}s")
+            except Exception as e:
+                duration = _time.time() - start
+                _record_run("push", "failed", duration, str(e)[:200])
+
+        time_parts = [t.strip() for t in PUSH_TIMES.split(",") if t.strip()]
+        for i, t in enumerate(time_parts):
+            parts = t.split(":")
+            hour = int(parts[0])
+            minute = int(parts[1]) if len(parts) > 1 else 0
+            _scheduler.add_job(
+                _push_with_record,
+                trigger="cron",
+                hour=hour,
+                minute=minute,
+                id=f"push_job_{i}",
+                name=f"企微推送（每天 {hour}:{minute:02d}）",
+                max_instances=1,
+            )
+        push_schedule_desc = f"，推送={PUSH_TIMES}"
+
     _scheduler.start()
     print(f"[调度器] 已启动：爬取间隔={format_duration(interval_sec)}，"
-          f"清理=每周{CLEANUP_DAY} {CLEANUP_HOUR}:00")
+          f"清理=每周{CLEANUP_DAY} {CLEANUP_HOUR}:00{push_schedule_desc}")
 
 
 def shutdown_scheduler():

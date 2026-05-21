@@ -47,6 +47,8 @@ CLEANUP_HOUR: int = int(os.getenv("CLEANUP_HOUR", "3"))
 
 # ---------- 企微推送 ----------
 WECOM_WEBHOOK: str = os.getenv("WECOM_WEBHOOK", "")
+PUSH_TIMES: str = os.getenv("PUSH_TIMES", "")  # 逗号分隔 HH:MM，如 "9:30,18:00"
+PUSH_SITE_URL: str = os.getenv("PUSH_SITE_URL", "")
 
 # ---------- 管理员认证 ----------
 ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "")

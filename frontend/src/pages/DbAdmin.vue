@@ -495,7 +495,7 @@ onMounted(loadTables)
                   <span class="run-log-status" :style="{ color: run.status === 'success' ? '#34c759' : '#ef4444' }">
                     {{ run.status === 'success' ? '✓' : '✗' }}
                   </span>
-                  <span class="run-log-job">{{ run.job === 'crawl' ? '爬取' : '清理' }}</span>
+                  <span class="run-log-job">{{ run.job === 'crawl' ? '爬取' : run.job === 'push' ? '推送' : '清理' }}</span>
                   <span class="run-log-time">{{ run.time }}</span>
                   <span class="run-log-duration">{{ run.duration }}s</span>
                   <span class="run-log-detail" :title="run.detail">{{ run.detail }}</span>

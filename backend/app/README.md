@@ -16,7 +16,8 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `crud.py` | 数据库操作：爬虫入库 / 过期清理 / 标注 / 事件 / 负责人 CRUD |
 | `pipeline.py` | 完整流水线：爬取 → 预处理 → 入库 |
 | `preprocessor.py` | 入库前预处理：筛选含"X月X日"的标题 + 提取 `online_date`（独立可替换） |
-| `scheduler.py` | APScheduler 注册：定时爬取入库 + 定期过期清理 |
+| `scheduler.py` | APScheduler 注册：定时爬取入库 + 定期过期清理 + 企微推送 |
+| `notifier.py` | 企微 Webhook 推送模块（可插拔，独立可测试） |
 | `auth.py` | 轻量管理员认证：密码验证与 HMAC 签名 Token 签发解析 |
 | `api/auth.py` | 管理员认证接口（登录、状态、退出） |
 | `api/news.py` | 统一日历查询、资讯速览查询 + 游戏列表 |
@@ -126,6 +127,9 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `CLEANUP_DAY` | `mon` | 清理在星期几执行（mon~sun） |
 | `CLEANUP_HOUR` | `3` | 清理在几点执行（0~23） |
 | `SPIDER_INTERVAL` | `8h` | 爬虫调度间隔覆盖值，支持 `30m` / `2h` / `1d`；非空时优先于 `sites.yaml` |
+| `WECOM_WEBHOOK` | 空 | 企微群机器人 webhook 地址，为空则不推送 |
+| `PUSH_TIMES` | 空 | 定时推送时间，逗号分隔 HH:MM（如 `9:30,18:00`），为空则不推送 |
+| `PUSH_SITE_URL` | 空 | 看板网页地址，推送首行显示（如 `http://your-domain.com/`） |
 | `ADMIN_PASSWORD` | 无 | 管理员登录密码（为空则禁止登录） |
 | `AUTH_SECRET_KEY` | 留空则自动生成 | HMAC Token 签名密钥；生产环境建议显式配置强随机值 |
 | `AUTH_TOKEN_EXPIRE_SECONDS` | `604800` | 登录 Token 过期时间（秒），默认 7 天 |
