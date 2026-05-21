@@ -149,6 +149,7 @@ schedule:
 | --- | --- | --- |
 | 定时爬取 + 预处理 + 入库 | 固定间隔 | 默认 `backend/spiders/sites.yaml`，可由 `.env` 的 `SPIDER_INTERVAL` 覆盖 |
 | 定期过期清理 | 每周某天某时（cron） | `.env.example` 的 `CLEANUP_DAY` + `CLEANUP_HOUR` |
+| 企微定时推送 | 每天指定时间（cron） | `.env` 的 `PUSH_TIMES`（如 `9:30,18:00`），`WECOM_WEBHOOK` 为空则不推送 |
 
 ---
 
