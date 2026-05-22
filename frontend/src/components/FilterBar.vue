@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import dayjs from 'dayjs'
 import DateWheelPicker from './DateWheelPicker.vue'
 import BottomSheetSelect from './BottomSheetSelect.vue'
@@ -24,7 +24,7 @@ const selectedResource = ref(null)
 const keyword = ref('')
 const mobileExpanded = ref(false)
 
-// 日期范围
+// 日期范围（默认"本周"）
 const dateRange = ref(null)
 const _dateStart = ref('')
 const _dateEnd = ref('')
@@ -108,6 +108,11 @@ function onShortcut(key) {
     dateRange.value = getShortcutRange(key)
   }
 }
+
+// 默认筛选"本周"
+onMounted(() => {
+  dateRange.value = getShortcutRange('week')
+})
 
 let debounceTimer = null
 

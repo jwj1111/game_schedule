@@ -803,9 +803,8 @@ async function onConfirmLogout() {
 const logoClickTimes = ref([])
 
 function onLogoClick() {
-  // 仅 PC 端触发（非触摸设备）
-  const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-  if (isTouchDevice) return
+  // 仅 PC 端触发（屏幕宽度 >= 768px）
+  if (window.innerWidth < 768) return
   // 仅已登录管理员
   if (!isAdmin.value) return
 
