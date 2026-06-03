@@ -56,7 +56,9 @@ WECOM_WEBHOOK: str = os.getenv("WECOM_WEBHOOK", "")
 PUSH_TIMES: str = os.getenv("PUSH_TIMES", "")  # 逗号分隔 HH:MM，如 "9:30,18:00"
 PUSH_SITE_URL: str = os.getenv("PUSH_SITE_URL", "")
 # 推送"最新事件"板块的时间窗口（小时，正整数）；仅影响企微推送，不影响前端资讯速览
-PUSH_NEW_HOURS: int = int(os.getenv("PUSH_NEW_HOURS", "24"))
+# 留空（如 `PUSH_NEW_HOURS=`）或不写均回退为默认 24
+_push_new_hours_raw = os.getenv("PUSH_NEW_HOURS", "").strip()
+PUSH_NEW_HOURS: int = int(_push_new_hours_raw) if _push_new_hours_raw else 24
 
 # ---------- 管理员认证 ----------
 ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "")
