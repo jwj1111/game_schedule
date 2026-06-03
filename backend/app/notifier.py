@@ -22,7 +22,7 @@ from typing import Dict, List
 import requests
 from sqlalchemy.orm import Session
 
-from backend.app.config import PUSH_SITE_URL, WECOM_WEBHOOK
+from backend.app.config import PUSH_NEW_HOURS, PUSH_SITE_URL, WECOM_WEBHOOK
 from backend.app.database import SessionLocal
 from backend.app.models import GameNews, GameOwner, UserEvent
 
@@ -129,9 +129,9 @@ def _query_expired_items(db: Session) -> List[dict]:
 
 
 def _query_new_items(db: Session) -> List[dict]:
-    """查询过去24h入库的未处理爬虫数据（priority=0 + 未隐藏 + 未配置资源位）。"""
+    """查询过去 PUSH_NEW_HOURS 小时入库的未处理爬虫数据（priority=0 + 未隐藏 + 未配置资源位）。"""
     now = datetime.now()
-    since = now - timedelta(hours=24)
+    since = now - timedelta(hours=PUSH_NEW_HOURS)
 
     items = []
     for news in db.query(GameNews).filter(

@@ -15,7 +15,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from backend.app.config import CLEANUP_DAY, CLEANUP_HOUR, DATA_RETENTION_DAYS
-from backend.app.config import PUSH_TIMES, WECOM_WEBHOOK
+from backend.app.config import PUSH_TIMES, SPIDER_START_TIME, WECOM_WEBHOOK
 from backend.app.crud import cleanup_expired
 from backend.app.database import SessionLocal
 from backend.app.pipeline import run_pipeline
@@ -25,6 +25,23 @@ _scheduler: BackgroundScheduler | None = None
 
 # 最近执行记录（最多 20 条，新的在前）
 recent_runs: deque[dict] = deque(maxlen=20)
+
+
+def _compute_start_date(hhmm: str) -> datetime | None:
+    """解析 SPIDER_START_TIME（HH:MM）为今天对应时刻的 datetime。
+
+    用作 APScheduler interval trigger 的锚点（在过去也无所谓，
+    APScheduler 会自动按 anchor + N×interval 计算大于 now 的下一次执行时刻）。
+
+    格式异常返回 None，等价于不设锚点（沿用旧行为：启动即开始计时）。
+    """
+    if not hhmm:
+        return None
+    try:
+        h, m = map(int, hhmm.split(":"))
+        return datetime.now().replace(hour=h, minute=m, second=0, microsecond=0)
+    except (ValueError, TypeError):
+        return None
 
 
 def _record_run(job: str, status: str, duration: float, detail: str):
@@ -81,11 +98,17 @@ def start_scheduler():
 
     _scheduler = BackgroundScheduler()
 
+    # 解析锚点：留空或格式非法都回退为 None（即旧行为）
+    crawl_start_date = _compute_start_date(SPIDER_START_TIME)
+    if SPIDER_START_TIME and crawl_start_date is None:
+        print(f"[调度器] 警告：SPIDER_START_TIME='{SPIDER_START_TIME}' 格式无效（应为 HH:MM），已忽略")
+
     # 任务 1：定时爬取（默认间隔由 sites.yaml 控制，可由 .env 的 SPIDER_INTERVAL 覆盖）
     _scheduler.add_job(
         _crawl_and_save,
         trigger="interval",
         seconds=interval_sec,
+        start_date=crawl_start_date,
         id="crawl_job",
         name=f"定时爬取（每 {format_duration(interval_sec)}）",
         max_instances=1,
@@ -136,7 +159,8 @@ def start_scheduler():
         push_schedule_desc = f"，推送={PUSH_TIMES}"
 
     _scheduler.start()
-    print(f"[调度器] 已启动：爬取间隔={format_duration(interval_sec)}，"
+    anchor_desc = f"，锚点={SPIDER_START_TIME}" if crawl_start_date else ""
+    print(f"[调度器] 已启动：爬取间隔={format_duration(interval_sec)}{anchor_desc}，"
           f"清理=每周{CLEANUP_DAY} {CLEANUP_HOUR}:00{push_schedule_desc}")
 
 

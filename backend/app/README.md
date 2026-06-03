@@ -127,9 +127,11 @@ FastAPI 服务 + 数据库 ORM + 预处理 + 定时调度。
 | `CLEANUP_DAY` | `mon` | 清理在星期几执行（mon~sun） |
 | `CLEANUP_HOUR` | `3` | 清理在几点执行（0~23） |
 | `SPIDER_INTERVAL` | `8h` | 爬虫调度间隔覆盖值，支持 `30m` / `2h` / `1d`；非空时优先于 `sites.yaml` |
+| `SPIDER_START_TIME` | 空 | 爬虫调度锚点时刻（`HH:MM`），配置后按"锚点 + N×间隔"触发，重启不漂移；为空则启动时刻为起点 |
 | `WECOM_WEBHOOK` | 空 | 企微群机器人 webhook 地址，为空则不推送 |
 | `PUSH_TIMES` | 空 | 定时推送时间，逗号分隔 HH:MM（如 `9:30,18:00`），为空则不推送 |
 | `PUSH_SITE_URL` | 空 | 看板网页地址，推送首行显示（如 `http://your-domain.com/`） |
+| `PUSH_NEW_HOURS` | `24` | 推送"最新事件"板块的时间窗口（小时）；仅影响企微推送，不影响前端资讯速览 |
 | `ADMIN_PASSWORD` | 无 | 管理员登录密码（为空则禁止登录） |
 | `AUTH_SECRET_KEY` | 留空则自动生成 | HMAC Token 签名密钥；生产环境建议显式配置强随机值 |
 | `AUTH_TOKEN_EXPIRE_SECONDS` | `604800` | 登录 Token 过期时间（秒），默认 7 天 |
@@ -147,7 +149,7 @@ schedule:
 
 | 任务 | 触发规则 | 配置位置 |
 | --- | --- | --- |
-| 定时爬取 + 预处理 + 入库 | 固定间隔 | 默认 `backend/spiders/sites.yaml`，可由 `.env` 的 `SPIDER_INTERVAL` 覆盖 |
+| 定时爬取 + 预处理 + 入库 | 固定间隔（可锚定到具体时刻） | 间隔：`backend/spiders/sites.yaml` 或 `.env SPIDER_INTERVAL`；锚点：`.env SPIDER_START_TIME` |
 | 定期过期清理 | 每周某天某时（cron） | `.env.example` 的 `CLEANUP_DAY` + `CLEANUP_HOUR` |
 | 企微定时推送 | 每天指定时间（cron） | `.env` 的 `PUSH_TIMES`（如 `9:30,18:00`），`WECOM_WEBHOOK` 为空则不推送 |
 

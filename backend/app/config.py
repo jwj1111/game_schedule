@@ -45,10 +45,18 @@ DATA_RETENTION_DAYS: int = int(os.getenv("DATA_RETENTION_DAYS", "60"))
 CLEANUP_DAY: str = os.getenv("CLEANUP_DAY", "mon")
 CLEANUP_HOUR: int = int(os.getenv("CLEANUP_HOUR", "3"))
 
+# ---------- 爬虫调度锚点（可选） ----------
+# HH:MM 格式，如 "00:00" → 锚定每天 00:00 为周期起点
+# 配合 SPIDER_INTERVAL 使用：8h + 00:00 → 每天 00/08/16 触发，重启不漂移
+# 留空则沿用旧行为（以服务启动时刻为起点开始计时）
+SPIDER_START_TIME: str = os.getenv("SPIDER_START_TIME", "").strip()
+
 # ---------- 企微推送 ----------
 WECOM_WEBHOOK: str = os.getenv("WECOM_WEBHOOK", "")
 PUSH_TIMES: str = os.getenv("PUSH_TIMES", "")  # 逗号分隔 HH:MM，如 "9:30,18:00"
 PUSH_SITE_URL: str = os.getenv("PUSH_SITE_URL", "")
+# 推送"最新事件"板块的时间窗口（小时，正整数）；仅影响企微推送，不影响前端资讯速览
+PUSH_NEW_HOURS: int = int(os.getenv("PUSH_NEW_HOURS", "24"))
 
 # ---------- 管理员认证 ----------
 ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "")
